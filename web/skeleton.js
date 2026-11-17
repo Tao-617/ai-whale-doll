@@ -19,7 +19,7 @@ export class SkeletonView {
     this.scene = new THREE.Scene();
     this.model = model;
     this.bones = [];
-    model.traverse(o => { if (o.isBone && groupOf(o.name) >= 0 && !/Hand(Thumb|Index|Middle|Ring|Pinky)[2-4]/.test(o.name)) this.bones.push(o); });
+    model.traverse(o => { if (o.isBone && !o.userData.hideRig && groupOf(o.name) >= 0 && !/Hand(Thumb|Index|Middle|Ring|Pinky)[2-4]/.test(o.name)) this.bones.push(o); });
     const set = new Set(this.bones);
     this.pairs = this.bones.filter(b => set.has(b.parent)).map(b => [b.parent, b]);
     const col = new THREE.Color(), lc = new Float32Array(this.pairs.length * 6), pc = new Float32Array(this.bones.length * 3);
@@ -42,8 +42,10 @@ export class SkeletonView {
   }
   update() {
     const lp = this.lines.geometry.attributes.position, pp = this.points.geometry.attributes.position, v = this.v;
-    this.pairs.forEach(([a, b], i) => { a.getWorldPosition(v).toArray(lp.array, i * 6); b.getWorldPosition(v).toArray(lp.array, i * 6 + 3); });
-    this.bones.forEach((b, i) => b.getWorldPosition(v).toArray(pp.array, i * 3));
+    // Open-hand fingertip markers only exist in the support pose, not in the original closed fist.
+    const point=b=>b.userData.supportHand?b.parent.localToWorld(b.position.clone().multiplyScalar(b.userData.supportHand.visible?b.userData.supportHand.scale.x:0)):b.getWorldPosition(v);
+    this.pairs.forEach(([a, b], i) => { point(a).toArray(lp.array, i * 6); point(b).toArray(lp.array, i * 6 + 3); });
+    this.bones.forEach((b, i) => point(b).toArray(pp.array, i * 3));
     lp.needsUpdate = pp.needsUpdate = true;
   }
   // draw into the current viewport: background, ghost of `scene`, the skeleton on top

@@ -12,6 +12,7 @@ import {retargetClip} from './retarget.js';
 import {Mover, Picker, TICS} from './moves.js';
 import {Climber} from './climb.js';
 import {Resting, RESTS} from './rest.js';
+import {Hands} from './hands.js';
 import {t, getLanguage, setLanguage} from './i18n.js';
 
 const canvas = document.querySelector('#stage');
@@ -62,7 +63,7 @@ const UP = W(0, 1, 0), RIGHT = W(1, 0, 0), FWD = W(0, 0, 1);
 
 const state = {time: 0, ready: false, style: 'toon', look: new THREE.Vector2(), eyes: new THREE.Vector2(), lookTarget: new THREE.Vector2()};
 const B = {};
-let model, mesh, hoop, pusher, mixer, mover, climber, resting, picker, MOVES = {}, clips = {}, restLocal = new Map(), face, outline, springs = [], colliders = [], restWorld = new Map(), materials = {};
+let model, mesh, hoop, pusher, mixer, mover, climber, resting, hands, picker, MOVES = {}, clips = {}, restLocal = new Map(), face, outline, springs = [], colliders = [], restWorld = new Map(), materials = {};
 
 // v2 (default): the single-mesh Tripo model on a Mixamo skeleton plus our spring bones (scripts/blender/v2/).
 // v1 (?model=v1): the 76-part model on our own Unity-named skeleton (scripts/blender/0x-*.py).
@@ -285,8 +286,17 @@ new GLTFLoader().load(CFG.file, gltf => {
       face: {eyeL: centroid(face.parts.eyeL), eyeR: centroid(face.parts.eyeR), mouth: centroid(face.parts.mouth)},
     };
     mover = new Mover(mb, body);
+    hands = new Hands(mesh, mover);
+    mover.hands = hands;
+    outline.bind(mesh.skeleton, mesh.bindMatrix);
+    outline.updateMorphTargets();outline.morphTargetInfluences=mesh.morphTargetInfluences;
+    for (const hand of Object.values(hands.sides)) for (const bone of [hand.bone, hand.tip,...hand.joints]) {
+      B[bone.name] = bone;
+      restLocal.set(bone, {q: bone.quaternion.clone(), p: bone.position.clone()});
+      restWorld.set(bone, {q: bone.getWorldQuaternion(new THREE.Quaternion()), local: bone.quaternion.clone(), pos: bone.position.clone()});
+    }
     climber = new Climber(mb, mover);
-    resting = new Resting(mb,mover,scene);
+    resting = new Resting(mb,mover,scene,hands);
   }
   if (CFG.clips) Promise.all([loadClips(), loadMoves()]).then(() => { state.ready = true; document.body.classList.add('ready'); });
   else { state.ready = true; document.body.classList.add('ready'); }
@@ -824,6 +834,7 @@ function companionReply(reply) {
 export function setStyle(style) {
   state.style = style;
   mesh.material = materials[style === 'flat' ? 'flat' : 'toon'];
+  hands?.setStyle(style);
 }
 export function setOutline(on) { outline.visible = on; }
 

@@ -25,7 +25,7 @@ These clips were recorded from the project's test page using the real model and 
 
 Walks are usually 2–4 minutes apart, sometimes longer while resting. At the bottom edge she can rest her cheeks in her hands, sit and eat rice, or lie on her side and sleep. Choose a pose anytime under **Resting poses**. The bowl, rice, and spoon are procedural meshes; no extra model download is needed. Dragging or chatting interrupts rest.
 
-The current source improves the cheek-rest pose and tail/skirt contact. Daydreaming can produce an occasional Chinese or English thought bubble: at most one per rest, at least a minute apart, controlled by **Occasional stroll and daydream chatter**. The 0.6.2 downloads remain the previously published build.
+The current source improves the cheek-rest pose and tail/skirt contact. Procedural, gently curved hands face the cheeks with fingers pointing up; cuffs follow the forearms, and the original hands return when the pose ends. Daydreaming can produce an occasional Chinese or English thought bubble: at most one per rest, at least a minute apart, controlled by **Occasional stroll and daydream chatter**. The 0.6.2 downloads remain the previously published build.
 
 Occasionally she performs an eight-second samba at the bottom edge, then rests again. Dances are at least eight minutes apart and never start during climbing or observation visits.
 

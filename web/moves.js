@@ -37,7 +37,7 @@ const UP = V(0, 1, 0), RIGHT = V(1, 0, 0), FWD = V(0, 0, 1);
 export const ARM = {
   mouth: {face: [0.45, 1.05], pole: [1, -1.2, 0]},                 // hands over the mouth
   cheeks: {face: [1.45, 0.85], pole: [1, -1.5, 0]},                // fists on the cheeks
-  cheek_rest: {face: [1.3, 0.85], gap: 0.95, pole: [0.35, -1.5, 0.2]}, // cheeks supported by the hands, elbows tucked down
+  cheek_rest: {face: [1.35, 1.2], gap: 0.95, pole: [0.35, -1.5, 0.2]}, // lower cheeks supported by the palms, elbows tucked down
   chin: {face: [0.3, 1.38], pole: [1, -1, 0]},                     // thinking
   eyes: {face: [1.0, 0.25], gap: 0.9, pole: [1, -1, 0]},           // rubbing the eyes
   clasp: {face: [0.3, 1.45], gap: 1.9, pole: [1, -1.2, 0]},        // hands together under the chin
@@ -459,11 +459,12 @@ export class Mover {
       // a fist can only be where the arm reaches and never inside her: pull it within reach, push it out, and again
       for (const [side, g] of Object.entries(goals)) {
         const S = side === 'L' ? 'Left' : 'Right', sh = wp(B[S + 'Arm']), el = wp(B[S + 'ForeArm']);
-        const reach = (el.distanceTo(sh) + B[S + 'ForeArm'].localToWorld(this.fist[side].local.clone()).distanceTo(el)) * 0.99;
+        const tip = !guarded[side] && external?.[side]?.tip || this.fist[side].local;
+        const reach = (el.distanceTo(sh) + B[S + 'ForeArm'].localToWorld(tip.clone()).distanceTo(el)) * 0.99;
         for (let i = 0; i < 3; i++) {
           const d = g.clone().sub(sh);
           if (d.length() > reach) g.copy(sh).addScaledVector(d.normalize(), reach);
-          for (const s of this.shells) s.push(g, this.fist[side].radius * (guarded[side] ? this.clear(s) : 0.9));
+          for (const s of this.shells) s.push(g, !guarded[side] && external?.[side]?.radius != null ? external[side].radius : this.fist[side].radius * (guarded[side] ? this.clear(s) : 0.9));
         }
       }
       if (goals.L && goals.R) {
@@ -477,7 +478,7 @@ export class Mover {
       for (const [side, goal] of Object.entries(goals)) {
         const a = this.arm[side], drive = external?.[side], p = guarded[side] ? null : ARM[a.lastPose], sw = guarded[side] ? 'gswivel' : drive ? 'cswivel' : 'swivel', sx = side === 'L' ? 1 : -1, S = side === 'L' ? 'Left' : 'Right';
         a[sw] ??= 0;
-        const root = B[S + 'Arm'], mid = B[S + 'ForeArm'], fl = this.fist[side].local;
+        const root = B[S + 'Arm'], mid = B[S + 'ForeArm'], fl = drive?.tip ?? this.fist[side].local;
         const sh = wp(root), la = wp(mid).distanceTo(sh), lb = mid.localToWorld(fl.clone()).distanceTo(wp(mid));
         const toT = goal.clone().sub(sh);
         const D = THREE.MathUtils.clamp(toT.length(), Math.abs(la - lb) + 1e-4, (la + lb) * 0.99);
@@ -530,7 +531,7 @@ export class Mover {
     // beyond 80% of the arm's reach; the straps and ruffles on the shoulder are weighted to it and ride along.
     for (const [side, g] of Object.entries(goals)) {
       const S = side === 'L' ? 'Left' : 'Right', col = B[S + 'Shoulder'], C = wp(col), sh = wp(B[S + 'Arm']), el = wp(B[S + 'ForeArm']);
-      const reach = el.distanceTo(sh) + B[S + 'ForeArm'].localToWorld(this.fist[side].local.clone()).distanceTo(el);
+      const reach = el.distanceTo(sh) + B[S + 'ForeArm'].localToWorld((external?.[side]?.tip ?? this.fist[side].local).clone()).distanceTo(el);
       const need = THREE.MathUtils.clamp((g.distanceTo(sh) - 0.8 * reach) / (0.35 * reach), 0, 1);
       if (need <= 0) continue;
       // Only ever up: turning the collar toward a goal below the shoulder (hands on the skirt, a hug across the chest)

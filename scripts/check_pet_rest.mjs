@@ -21,6 +21,26 @@ for(const width of [260,360,520]){await p.setViewportSize({width,height:Math.rou
   await p.evaluate(()=>{xjPet.interrupt(0);step(90);});assert(await p.evaluate(()=>xj.state.restWeight===0));
  }
 }
+const hands=await p.evaluate(async()=>{
+ const T=await import('./vendor/three.module.min.js'),rig=xj.mover.hands;
+ const neutral=()=>rig.mesh.morphTargetInfluences[rig.morphIndex]===0&&Object.values(rig.sides).every(h=>!h.shape.visible&&h.bone.quaternion.angleTo(new T.Quaternion())<1e-6);
+ const before=neutral();xj.rest('brood');step(180);
+ const sides=Object.fromEntries(Object.entries(rig.sides).map(([side,h])=>{
+  const q=h.shape.getWorldQuaternion(new T.Quaternion()),palm=new T.Vector3(0,0,1).applyQuaternion(q),up=new T.Vector3(0,1,0).applyQuaternion(q),center=h.bone.localToWorld(h.supportCenter.clone());
+  const head=xj.mover.body.head;head.sync();const contact=head.surface(center.clone().applyMatrix4(head.toRest));contact.n.transformDirection(head.toWorld);
+  const palmPoint=h.shape.localToWorld(new T.Vector3(0,.027,.010)),touch=head.surface(palmPoint.clone().applyMatrix4(head.toRest));touch.p.applyMatrix4(head.toWorld);touch.n.transformDirection(head.toWorld);
+  return [side,{vertices:h.ids.length,fingers:h.joints.length,up:up.y,inward:palm.dot(contact.n.clone().negate()),gap:palmPoint.sub(touch.p).dot(touch.n),visible:h.shape.visible,finite:Array.from(h.shape.geometry.attributes.position.array).every(Number.isFinite)}];
+ }));
+ let maxWristStep=0,previous=Object.values(rig.sides).map(h=>h.bone.getWorldQuaternion(new T.Quaternion()));
+ for(let i=0;i<180;i++){xj.tick(1/30,false);Object.values(rig.sides).forEach((h,j)=>{const q=h.bone.getWorldQuaternion(new T.Quaternion());maxWristStep=Math.max(maxWristStep,q.angleTo(previous[j])*180/Math.PI);previous[j]=q;});}
+ xj.stopPreview();step(90);const stopped=neutral();
+ const otherPoses={};for(const id of ['rice','sleep']){xj.rest(id);step(100);otherPoses[id]=neutral();xj.stopPreview();step(90);}
+ for(const id of ['walk','samba']){xj.play(id);step(100);otherPoses[id]=neutral();xj.play(null);step(60);}
+ return{bindError:rig.bindError,before,sides,maxWristStep,stopped,otherPoses};
+});
+assert(hands.bindError<1e-6,'adding the wrist rig must preserve the original bind shape');assert(hands.before&&hands.stopped);
+for(const side of Object.values(hands.sides)){assert(side.vertices>450&&side.fingers===5&&side.visible&&side.finite);assert(side.up>.8&&side.inward>.4,'fingers point upward and palms face the cheek');assert(Math.abs(side.gap)<.012,'the palm touches the cheek instead of hovering or sinking into it');}
+assert(hands.maxWristStep<5,'wrist orientation must stay continuous');for(const ok of Object.values(hands.otherPoses))assert(ok,'other actions retain the original hands');
 const chatter=await p.evaluate(()=>{
  const bubble=document.querySelector('#bubble');
  const start=(host={})=>{xj.stopPreview();step(60);xj.state.nextRestChatter=0;xjPet.host({active:false,parked:true,floor:true,chatter:true,...host});xj.rest('brood');};
@@ -65,5 +85,5 @@ const schedule=await p.evaluate(async()=>{
   life.host({active:true,parked:true,floor:true,travel:trip});life.update(.5,state.time);}
  Math.random=random;return{trips,rests:[...rests]};
 });assert(schedule.trips.length>=1&&schedule.trips.length<=4);assert(schedule.trips[0]>=90);assert(schedule.rests.length>=2);for(let i=1;i<schedule.trips.length;i++)assert(schedule.trips[i]-schedule.trips[i-1]>=120);
-assert.deepEqual(errors,[]);await writeFile(out+'verified.json',JSON.stringify({poses,chatter,dance,schedule,errors},null,2));console.log(JSON.stringify({poses,chatter,dance,schedule,errors}));
+assert.deepEqual(errors,[]);await writeFile(out+'verified.json',JSON.stringify({poses,hands,chatter,dance,schedule,errors},null,2));console.log(JSON.stringify({poses,hands,chatter,dance,schedule,errors}));
 }finally{await b.close()}

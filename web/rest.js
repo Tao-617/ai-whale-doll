@@ -7,7 +7,8 @@ const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
 const FADE_IN=2.8;
 export const RESTS={brood:{zh:'蹲下托腮发呆',en:'Rest cheeks in hands',face:'bored',duration:40},rice:{zh:'坐下吃白饭',en:'Sit and eat rice',face:'smile',duration:50},sleep:{zh:'躺下睡大觉',en:'Lie down and sleep',face:'asleep',duration:100}};
 export class Resting {
- constructor(B,mover,scene){
+ constructor(B,mover,scene,hands){
+  this.hands=hands;
   this.B=B;this.mover=mover;this.weight=0;this.kind=null;this.hip=wp(B.Hips);this.feet={Left:wp(B.LeftFoot),Right:wp(B.RightFoot)};
   this.mouth=B.Head.worldToLocal(mover.body.face.mouth.clone());
   this.bowl=new THREE.Group();scene.add(this.bowl);this.bowl.visible=false;
@@ -31,6 +32,7 @@ export class Resting {
   if(drive&&RESTS[drive.id]){if(this.kind!==drive.id||this.started!==drive.start){this.kind=drive.id;this.started=drive.start;face.set(RESTS[this.kind].face,0,t);}}
   const target=drive?1:0;this.weight+=(target-this.weight)*(1-Math.exp(-dt*(target?FADE_IN:5)));
   state.restWeight=this.weight;
+  this.hands?.open(this.kind==='brood'?this.weight:0);
   if(this.weight<.002){if(this.kind&&face.name===RESTS[this.kind]?.face)face.set('neutral',0,t);this.kind=null;this.weight=0;state.restWeight=0;return;}
   const B=this.B,w=this.weight,age=t-this.started,kind=this.kind;
   const hip=this.hip.clone().add(kind==='sleep'?V(.14,-.13,0):kind==='rice'?V(0,-.17,0):V(0,-.14,-.015));
@@ -44,16 +46,17 @@ export class Resting {
    const goal=this.feet[S].clone().add(kind==='rice'?V(sx*.035,0,.16):kind==='sleep'?V(sx*.025,.065,.07):V(sx*.02,0,.035));
    twoBone(B[S+'UpLeg'],B[S+'Leg'],B[S+'Foot'],goal,V(sx*.8,.05,1),w);
   }
-  const hands={};this.scoopPhase=smooth((Math.sin(age*1.7-.9)+1)/2);
+  const hands={};this.scoopPhase=smooth((Math.sin(age*1.7-.9)+1)/2);this.mover.body.head.sync();
   for(const [side,sx] of [['L',1],['R',-1]]){
    let goal=this.anchor(kind==='brood'?'cheek_rest':kind==='sleep'?'cheeks':'clasp',side);
    if(kind==='rice'&&side==='R'){
     const low=this.anchor('clasp','L').add(V(-.07,-.045,.025));
     goal=low.lerp(this.anchor('mouth','R'),this.scoopPhase);
    }
-   hands[side]={target:goal,pole:kind==='brood'?V(sx*.35,-1.5,.2):V(sx,-.8,-.2),weight:w};
+   hands[side]=(kind==='brood'&&this.hands?.support(side,goal,this.mover.body.head,w))||{target:goal,pole:V(sx,-.8,-.2),weight:w};
   }
   this.mover.arms(dt,t,hands);
+  for(const side of ['L','R'])if(hands[side].rotation)this.hands.pose(side,hands[side].rotation,w);
   if(kind==='sleep'){
    turnWorld(B.Hips,Z,1.35*w);
    for(const S of ['Left','Right']){
