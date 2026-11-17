@@ -47,7 +47,16 @@
 #legend{display:none;position:fixed;right:14px;top:58px;gap:10px;flex-wrap:wrap;justify-content:flex-end;max-width:46vw;font:12px system-ui;color:#dfe6f5;pointer-events:none}
 #legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
 html.pet, html.pet body { background: transparent; }
-html.pet #bar, html.pet #hint, html.pet #timeline, html.pet #legend, html.pet #loading, html.pet #previews { display: none !important; }
+html.pet #bar, html.pet #hint, html.pet #timeline, html.pet #legend, html.pet #loading, html.pet #previews, html.pet #dance { display: none !important; }
+  #dance { position: fixed; right: 14px; top: 58px; display: grid; gap: 7px; width: 250px; padding: 12px; border-radius: 14px;
+    background: rgba(255, 255, 255, .82); backdrop-filter: blur(8px); font-size: 13px; }
+  #dance .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  #dance button, #dance select { font: inherit; border: 0; border-radius: 9px; padding: 7px 8px; background: #fff; color: #1d2a52; cursor: pointer; }
+  #dance button:hover { background: #e7eeff; }
+  #dance button:disabled { opacity: .45; cursor: wait; }
+  #dance textarea { font: 12px ui-monospace, monospace; border: 1px solid #cad6ee; border-radius: 8px; padding: 6px; resize: vertical; min-height: 54px; }
+  #dance pre { margin: 0; font: 11.5px/1.45 ui-monospace, monospace; white-space: pre; overflow: hidden; }
+  #dance small { opacity: .65; line-height: 1.5; }
 html.pet #bubble { top: 1%; font-size: 13px; padding: 8px 12px; width: max-content; max-width: calc(100vw - 20px); }
 </style>
 <script type="importmap">{"imports": {"three": "./vendor/three.module.min.js"}}</script>
@@ -65,6 +74,19 @@ html.pet #bubble { top: 1%; font-size: 13px; padding: 8px 12px; width: max-conte
   <button data-preview="samba" aria-pressed="false" disabled>跳桑巴舞</button>
   <button id="preview-stop" disabled>停止预览 · 站起来</button>
   <small>顶部可暂停、拖动进度。<br>底部勾「骨骼」查看关节。</small>
+</section>
+<section id="dance" aria-label="流式舞蹈 demo">
+  <strong>流式舞蹈 demo · 桑巴原子</strong>
+  <div class="row">
+    <button data-dance="score" disabled>原舞（原子重建）</button>
+    <button data-dance="improvise" disabled>即兴编排</button>
+    <button data-dance="stop" disabled>停</button>
+  </div>
+  <select id="dance-solo" disabled><option value="">单看一个原子…</option></select>
+  <textarea id="dance-cmd" spellcheck="false">{"legs":"legs3","arms":"arms5","torso":"torso3","size":0.8}</textarea>
+  <div class="row"><button id="dance-push" disabled>推入队列（一块 = 2 拍）</button></div>
+  <pre id="dance-log"></pre>
+  <small>腿 / 躯干 / 手臂各自按块（2 拍）接续；没写的部位继续当前律动，写 null 回到静止。* = 自动补的律动。</small>
 </section>
 <div id="timeline" class="idle">
   <button id="tl-play" title="暂停 / 播放（空格）">⏸</button>

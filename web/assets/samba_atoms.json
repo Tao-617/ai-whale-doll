@@ -1,0 +1,934 @@
+{
+ "source": "web/assets/anims/Michelle.glb#SambaDance",
+ "period": 0.5742,
+ "bpm": 104.5,
+ "beatsPerBlock": 2,
+ "channels": {
+  "legs": {
+   "cn": "腿",
+   "bones": [
+    "Hips",
+    "LeftUpLeg",
+    "LeftLeg",
+    "LeftFoot",
+    "RightUpLeg",
+    "RightLeg",
+    "RightFoot"
+   ],
+   "threshold": 13
+  },
+  "torso": {
+   "cn": "躯干",
+   "bones": [
+    "Spine",
+    "Spine1",
+    "Spine2",
+    "Neck",
+    "Head"
+   ],
+   "threshold": 9
+  },
+  "arms": {
+   "cn": "手臂",
+   "bones": [
+    "LeftShoulder",
+    "LeftArm",
+    "LeftForeArm",
+    "LeftHand",
+    "RightShoulder",
+    "RightArm",
+    "RightForeArm",
+    "RightHand"
+   ],
+   "threshold": 20
+  }
+ },
+ "blocks": [
+  [
+   0.73,
+   1.8784
+  ],
+  [
+   1.879,
+   3.0274
+  ],
+  [
+   3.027,
+   4.1754
+  ],
+  [
+   4.176,
+   5.3244
+  ],
+  [
+   5.324,
+   6.4724
+  ],
+  [
+   6.472,
+   7.6204
+  ],
+  [
+   7.621,
+   8.7694
+  ],
+  [
+   8.769,
+   9.9174
+  ],
+  [
+   9.918,
+   11.0664
+  ],
+  [
+   11.066,
+   12.2144
+  ],
+  [
+   12.215,
+   13.3634
+  ],
+  [
+   13.363,
+   14.5114
+  ],
+  [
+   14.511,
+   15.6594
+  ],
+  [
+   15.66,
+   16.8084
+  ],
+  [
+   16.808,
+   17.9564
+  ]
+ ],
+ "score": {
+  "legs": [
+   "legs1",
+   "legs2",
+   "legs3",
+   "legs2",
+   "legs3",
+   "legs2",
+   "legs3",
+   "legs2",
+   "legs3",
+   "legs4",
+   "legs5",
+   "legs6",
+   "legs5",
+   "legs7",
+   "legs8"
+  ],
+  "torso": [
+   "torso1",
+   "torso2",
+   "torso3",
+   "torso4",
+   "torso5",
+   "torso6",
+   "torso3",
+   "torso6",
+   "torso3",
+   "torso7",
+   "torso8",
+   "torso9",
+   "torso10",
+   "torso11",
+   "torso3"
+  ],
+  "arms": [
+   "arms1",
+   "arms2",
+   "arms3",
+   "arms4",
+   "arms5",
+   "arms4",
+   "arms5",
+   "arms4",
+   "arms5",
+   "arms6",
+   "arms7",
+   "arms8",
+   "arms9",
+   "arms10",
+   "arms11"
+  ]
+ },
+ "atoms": [
+  {
+   "id": "legs1",
+   "channel": "legs",
+   "label": "点步·右点右点·左转",
+   "src": [
+    0.73,
+    1.8784
+   ],
+   "members": [
+    0
+   ],
+   "spread": 0,
+   "next": {
+    "legs1": 16.7,
+    "legs2": 9.6,
+    "legs3": 14.1,
+    "legs4": 12.3,
+    "legs5": 22.4,
+    "legs6": 15.1,
+    "legs7": 16.3,
+    "legs8": 19.7
+   }
+  },
+  {
+   "id": "legs2",
+   "channel": "legs",
+   "label": "点步·右点左点·左转",
+   "src": [
+    8.769,
+    9.9174
+   ],
+   "members": [
+    1,
+    3,
+    5,
+    7
+   ],
+   "spread": 8.8,
+   "next": {
+    "legs1": 16.8,
+    "legs2": 17.2,
+    "legs3": 4.7,
+    "legs4": 16.2,
+    "legs5": 18.5,
+    "legs6": 18.1,
+    "legs7": 16.2,
+    "legs8": 22.1
+   }
+  },
+  {
+   "id": "legs3",
+   "channel": "legs",
+   "label": "小跳·跳跳·左转",
+   "src": [
+    5.324,
+    6.4724
+   ],
+   "members": [
+    2,
+    4,
+    6,
+    8
+   ],
+   "spread": 9.9,
+   "next": {
+    "legs1": 15.7,
+    "legs2": 7.9,
+    "legs3": 15.8,
+    "legs4": 15.1,
+    "legs5": 25,
+    "legs6": 18,
+    "legs7": 14.4,
+    "legs8": 19.6
+   }
+  },
+  {
+   "id": "legs4",
+   "channel": "legs",
+   "label": "踢腿·右点左点·左转",
+   "src": [
+    11.066,
+    12.2144
+   ],
+   "members": [
+    9
+   ],
+   "spread": 0,
+   "next": {
+    "legs1": 24,
+    "legs2": 28,
+    "legs3": 19.8,
+    "legs4": 24.2,
+    "legs5": 0,
+    "legs6": 29,
+    "legs7": 27.6,
+    "legs8": 26.2
+   }
+  },
+  {
+   "id": "legs5",
+   "channel": "legs",
+   "label": "踢腿·左点左点",
+   "src": [
+    12.215,
+    13.3634
+   ],
+   "members": [
+    10,
+    12
+   ],
+   "spread": 10.2,
+   "next": {
+    "legs1": 22.6,
+    "legs2": 13.1,
+    "legs3": 18.1,
+    "legs4": 16.6,
+    "legs5": 29,
+    "legs6": 0,
+    "legs7": 15.6,
+    "legs8": 24.9
+   }
+  },
+  {
+   "id": "legs6",
+   "channel": "legs",
+   "label": "踢腿·右点左点",
+   "src": [
+    13.363,
+    14.5114
+   ],
+   "members": [
+    11
+   ],
+   "spread": 0,
+   "next": {
+    "legs1": 28,
+    "legs2": 32.4,
+    "legs3": 22.9,
+    "legs4": 28.7,
+    "legs5": 8.3,
+    "legs6": 33.2,
+    "legs7": 31.6,
+    "legs8": 30.4
+   }
+  },
+  {
+   "id": "legs7",
+   "channel": "legs",
+   "label": "踢腿·右点左点",
+   "src": [
+    15.66,
+    16.8084
+   ],
+   "members": [
+    13
+   ],
+   "spread": 0,
+   "next": {
+    "legs1": 13.1,
+    "legs2": 20.5,
+    "legs3": 25.8,
+    "legs4": 12.7,
+    "legs5": 26.2,
+    "legs6": 24.9,
+    "legs7": 22.6,
+    "legs8": 0
+   }
+  },
+  {
+   "id": "legs8",
+   "channel": "legs",
+   "label": "点步·右点跳",
+   "src": [
+    16.808,
+    17.9564
+   ],
+   "members": [
+    14
+   ],
+   "spread": 0,
+   "next": {
+    "legs1": 17.5,
+    "legs2": 13.8,
+    "legs3": 15.8,
+    "legs4": 13.8,
+    "legs5": 21.8,
+    "legs6": 17.5,
+    "legs7": 14.3,
+    "legs8": 19
+   }
+  },
+  {
+   "id": "torso1",
+   "channel": "torso",
+   "label": "摆身",
+   "src": [
+    0.73,
+    1.8784
+   ],
+   "members": [
+    0
+   ],
+   "spread": 0,
+   "next": {
+    "torso1": 13,
+    "torso2": 0,
+    "torso3": 11.6,
+    "torso4": 12.4,
+    "torso5": 23.3,
+    "torso6": 11.7,
+    "torso7": 11.9,
+    "torso8": 10.7,
+    "torso9": 13.6,
+    "torso10": 8.7,
+    "torso11": 12.3
+   }
+  },
+  {
+   "id": "torso2",
+   "channel": "torso",
+   "label": "摆身",
+   "src": [
+    1.879,
+    3.0274
+   ],
+   "members": [
+    1
+   ],
+   "spread": 0,
+   "next": {
+    "torso1": 7.4,
+    "torso2": 10.3,
+    "torso3": 8.4,
+    "torso4": 15.1,
+    "torso5": 21.6,
+    "torso6": 11.5,
+    "torso7": 14.5,
+    "torso8": 7.9,
+    "torso9": 12.4,
+    "torso10": 6.9,
+    "torso11": 11.5
+   }
+  },
+  {
+   "id": "torso3",
+   "channel": "torso",
+   "label": "稳身",
+   "src": [
+    9.918,
+    11.0664
+   ],
+   "members": [
+    2,
+    6,
+    8,
+    14
+   ],
+   "spread": 6.7,
+   "next": {
+    "torso1": 13.1,
+    "torso2": 11.9,
+    "torso3": 17.6,
+    "torso4": 12.2,
+    "torso5": 15.6,
+    "torso6": 11.5,
+    "torso7": 0,
+    "torso8": 16.4,
+    "torso9": 7.4,
+    "torso10": 13,
+    "torso11": 7.8
+   }
+  },
+  {
+   "id": "torso4",
+   "channel": "torso",
+   "label": "摆身",
+   "src": [
+    4.176,
+    5.3244
+   ],
+   "members": [
+    3
+   ],
+   "spread": 0,
+   "next": {
+    "torso1": 19.8,
+    "torso2": 23.3,
+    "torso3": 25.8,
+    "torso4": 18.8,
+    "torso5": 0,
+    "torso6": 17.9,
+    "torso7": 15.6,
+    "torso8": 27,
+    "torso9": 12.6,
+    "torso10": 22.5,
+    "torso11": 17.1
+   }
+  },
+  {
+   "id": "torso5",
+   "channel": "torso",
+   "label": "稳身",
+   "src": [
+    5.324,
+    6.4724
+   ],
+   "members": [
+    4
+   ],
+   "spread": 0,
+   "next": {
+    "torso1": 7.2,
+    "torso2": 11.7,
+    "torso3": 15.6,
+    "torso4": 10.7,
+    "torso5": 17.9,
+    "torso6": 0,
+    "torso7": 11.5,
+    "torso8": 15.5,
+    "torso9": 11.1,
+    "torso10": 10.5,
+    "torso11": 12.8
+   }
+  },
+  {
+   "id": "torso6",
+   "channel": "torso",
+   "label": "摆身",
+   "src": [
+    6.472,
+    7.6204
+   ],
+   "members": [
+    5,
+    7
+   ],
+   "spread": 7.2,
+   "next": {
+    "torso1": 12.6,
+    "torso2": 9.8,
+    "torso3": 3.4,
+    "torso4": 18.6,
+    "torso5": 23.8,
+    "torso6": 14.4,
+    "torso7": 15,
+    "torso8": 11.1,
+    "torso9": 16.2,
+    "torso10": 9.9,
+    "torso11": 14.3
+   }
+  },
+  {
+   "id": "torso7",
+   "channel": "torso",
+   "label": "扭身",
+   "src": [
+    11.066,
+    12.2144
+   ],
+   "members": [
+    9
+   ],
+   "spread": 0,
+   "next": {
+    "torso1": 11.9,
+    "torso2": 10.7,
+    "torso3": 12,
+    "torso4": 13.6,
+    "torso5": 27,
+    "torso6": 15.5,
+    "torso7": 16.4,
+    "torso8": 0,
+    "torso9": 16.1,
+    "torso10": 7.3,
+    "torso11": 12.1
+   }
+  },
+  {
+   "id": "torso8",
+   "channel": "torso",
+   "label": "稳身",
+   "src": [
+    12.215,
+    13.3634
+   ],
+   "members": [
+    10
+   ],
+   "spread": 0,
+   "next": {
+    "torso1": 11.7,
+    "torso2": 13.6,
+    "torso3": 18.1,
+    "torso4": 9.5,
+    "torso5": 12.6,
+    "torso6": 11.1,
+    "torso7": 7.4,
+    "torso8": 16.1,
+    "torso9": 0,
+    "torso10": 12.8,
+    "torso11": 6.4
+   }
+  },
+  {
+   "id": "torso9",
+   "channel": "torso",
+   "label": "扭身",
+   "src": [
+    13.363,
+    14.5114
+   ],
+   "members": [
+    11
+   ],
+   "spread": 0,
+   "next": {
+    "torso1": 8.4,
+    "torso2": 8.7,
+    "torso3": 10.9,
+    "torso4": 13.2,
+    "torso5": 22.5,
+    "torso6": 10.5,
+    "torso7": 13,
+    "torso8": 7.3,
+    "torso9": 12.8,
+    "torso10": 0,
+    "torso11": 11.3
+   }
+  },
+  {
+   "id": "torso10",
+   "channel": "torso",
+   "label": "摆身",
+   "src": [
+    14.511,
+    15.6594
+   ],
+   "members": [
+    12
+   ],
+   "spread": 0,
+   "next": {
+    "torso1": 10.3,
+    "torso2": 12.3,
+    "torso3": 16,
+    "torso4": 9.3,
+    "torso5": 17.1,
+    "torso6": 12.8,
+    "torso7": 7.8,
+    "torso8": 12.1,
+    "torso9": 6.4,
+    "torso10": 11.3,
+    "torso11": 0
+   }
+  },
+  {
+   "id": "torso11",
+   "channel": "torso",
+   "label": "扭身",
+   "src": [
+    15.66,
+    16.8084
+   ],
+   "members": [
+    13
+   ],
+   "spread": 0,
+   "next": {
+    "torso1": 9.5,
+    "torso2": 7,
+    "torso3": 11.4,
+    "torso4": 15.2,
+    "torso5": 21.5,
+    "torso6": 9.3,
+    "torso7": 11.9,
+    "torso8": 12.3,
+    "torso9": 13.2,
+    "torso10": 6.1,
+    "torso11": 13.6
+   }
+  },
+  {
+   "id": "arms1",
+   "channel": "arms",
+   "label": "收",
+   "src": [
+    0.73,
+    1.8784
+   ],
+   "members": [
+    0
+   ],
+   "spread": 0,
+   "next": {
+    "arms1": 35.9,
+    "arms2": 0,
+    "arms3": 30.6,
+    "arms4": 38.5,
+    "arms5": 27.6,
+    "arms6": 28.4,
+    "arms7": 37.3,
+    "arms8": 37.3,
+    "arms9": 36.7,
+    "arms10": 42,
+    "arms11": 37.8
+   }
+  },
+  {
+   "id": "arms2",
+   "channel": "arms",
+   "label": "收外展前伸",
+   "src": [
+    1.879,
+    3.0274
+   ],
+   "members": [
+    1
+   ],
+   "spread": 0,
+   "next": {
+    "arms1": 56.5,
+    "arms2": 30.6,
+    "arms3": 0,
+    "arms4": 53.2,
+    "arms5": 20.7,
+    "arms6": 48.5,
+    "arms7": 60.2,
+    "arms8": 52.1,
+    "arms9": 55.7,
+    "arms10": 61,
+    "arms11": 57.3
+   }
+  },
+  {
+   "id": "arms3",
+   "channel": "arms",
+   "label": "高举收",
+   "src": [
+    3.027,
+    4.1754
+   ],
+   "members": [
+    2
+   ],
+   "spread": 0,
+   "next": {
+    "arms1": 22.3,
+    "arms2": 35.8,
+    "arms3": 56.7,
+    "arms4": 14,
+    "arms5": 46.9,
+    "arms6": 22.9,
+    "arms7": 32.5,
+    "arms8": 14.6,
+    "arms9": 19.8,
+    "arms10": 20.7,
+    "arms11": 19.3
+   }
+  },
+  {
+   "id": "arms4",
+   "channel": "arms",
+   "label": "收外展",
+   "src": [
+    8.769,
+    9.9174
+   ],
+   "members": [
+    3,
+    5,
+    7
+   ],
+   "spread": 17.1,
+   "next": {
+    "arms1": 46.3,
+    "arms2": 25.5,
+    "arms3": 21.3,
+    "arms4": 39.1,
+    "arms5": 7.3,
+    "arms6": 37.4,
+    "arms7": 52.5,
+    "arms8": 39.3,
+    "arms9": 43.9,
+    "arms10": 49.6,
+    "arms11": 42.9
+   }
+  },
+  {
+   "id": "arms5",
+   "channel": "arms",
+   "label": "外展",
+   "src": [
+    7.621,
+    8.7694
+   ],
+   "members": [
+    4,
+    6,
+    8
+   ],
+   "spread": 14.2,
+   "next": {
+    "arms1": 22.4,
+    "arms2": 38.5,
+    "arms3": 53.2,
+    "arms4": 0,
+    "arms5": 41.7,
+    "arms6": 20.9,
+    "arms7": 42.1,
+    "arms8": 16.9,
+    "arms9": 21.6,
+    "arms10": 21,
+    "arms11": 17.6
+   }
+  },
+  {
+   "id": "arms6",
+   "channel": "arms",
+   "label": "收外展",
+   "src": [
+    11.066,
+    12.2144
+   ],
+   "members": [
+    9
+   ],
+   "spread": 0,
+   "next": {
+    "arms1": 33.8,
+    "arms2": 37.3,
+    "arms3": 60.2,
+    "arms4": 42.1,
+    "arms5": 54.2,
+    "arms6": 37.3,
+    "arms7": 0,
+    "arms8": 36.2,
+    "arms9": 30.3,
+    "arms10": 26.6,
+    "arms11": 28.5
+   }
+  },
+  {
+   "id": "arms7",
+   "channel": "arms",
+   "label": "外展",
+   "src": [
+    12.215,
+    13.3634
+   ],
+   "members": [
+    10
+   ],
+   "spread": 0,
+   "next": {
+    "arms1": 27.2,
+    "arms2": 37.3,
+    "arms3": 52.1,
+    "arms4": 16.9,
+    "arms5": 42.9,
+    "arms6": 20.9,
+    "arms7": 36.2,
+    "arms8": 0,
+    "arms9": 13.1,
+    "arms10": 24.4,
+    "arms11": 20.4
+   }
+  },
+  {
+   "id": "arms8",
+   "channel": "arms",
+   "label": "前伸外展",
+   "src": [
+    13.363,
+    14.5114
+   ],
+   "members": [
+    11
+   ],
+   "spread": 0,
+   "next": {
+    "arms1": 29.2,
+    "arms2": 36.7,
+    "arms3": 55.7,
+    "arms4": 21.6,
+    "arms5": 46.9,
+    "arms6": 23,
+    "arms7": 30.3,
+    "arms8": 13.1,
+    "arms9": 0,
+    "arms10": 20.9,
+    "arms11": 19.4
+   }
+  },
+  {
+   "id": "arms9",
+   "channel": "arms",
+   "label": "外展前伸",
+   "src": [
+    14.511,
+    15.6594
+   ],
+   "members": [
+    12
+   ],
+   "spread": 0,
+   "next": {
+    "arms1": 23.8,
+    "arms2": 42,
+    "arms3": 61,
+    "arms4": 21,
+    "arms5": 51.2,
+    "arms6": 27.2,
+    "arms7": 26.6,
+    "arms8": 24.4,
+    "arms9": 20.9,
+    "arms10": 0,
+    "arms11": 13.5
+   }
+  },
+  {
+   "id": "arms10",
+   "channel": "arms",
+   "label": "前伸收",
+   "src": [
+    15.66,
+    16.8084
+   ],
+   "members": [
+    13
+   ],
+   "spread": 0,
+   "next": {
+    "arms1": 27.7,
+    "arms2": 37.8,
+    "arms3": 57.3,
+    "arms4": 17.6,
+    "arms5": 46.1,
+    "arms6": 22.5,
+    "arms7": 28.5,
+    "arms8": 20.4,
+    "arms9": 19.4,
+    "arms10": 13.5,
+    "arms11": 0
+   }
+  },
+  {
+   "id": "arms11",
+   "channel": "arms",
+   "label": "收",
+   "src": [
+    16.808,
+    17.9564
+   ],
+   "members": [
+    14
+   ],
+   "spread": 0,
+   "next": {
+    "arms1": 33.6,
+    "arms2": 44.9,
+    "arms3": 64.2,
+    "arms4": 26.3,
+    "arms5": 52.3,
+    "arms6": 29.5,
+    "arms7": 33.7,
+    "arms8": 25.1,
+    "arms9": 27.5,
+    "arms10": 28.4,
+    "arms11": 20.5
+   }
+  }
+ ]
+}

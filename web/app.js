@@ -13,6 +13,7 @@ import {Mover, Picker, TICS} from './moves.js';
 import {Climber} from './climb.js';
 import {Resting, RESTS} from './rest.js';
 import {Hands} from './hands.js';
+import {Dancer, drivers} from './dance.js';
 import {t, getLanguage, setLanguage} from './i18n.js';
 
 const canvas = document.querySelector('#stage');
@@ -298,7 +299,7 @@ new GLTFLoader().load(CFG.file, gltf => {
     climber = new Climber(mb, mover);
     resting = new Resting(mb,mover,scene,hands);
   }
-  if (CFG.clips) Promise.all([loadClips(), loadMoves()]).then(() => { state.ready = true; document.body.classList.add('ready'); });
+  if (CFG.clips) Promise.all([loadClips(), loadMoves()]).then(loadDance).then(() => { state.ready = true; document.body.classList.add('ready'); });
   else { state.ready = true; document.body.classList.add('ready'); }
 });
 
@@ -461,9 +462,30 @@ async function loadMoves() {
   const sel = document.querySelector('#move');
   for (const m of list) sel?.append(new Option(m.cn, m.id));
 }
+// stream-dance demo: the samba cut into atoms (scripts/samba_atoms.mjs → assets/samba_atoms.json), see dance.js
+let dancer = null;
+async function loadDance() {
+  if (!clips.samba) return;
+  const lib = await (await fetch('assets/samba_atoms.json')).json();
+  dancer = new Dancer({mixer, clip: clips.samba, lib, model, hips: B.mixamorigHips, hipsRest: restLocal.get(B.mixamorigHips).q, rest: new Map([...restLocal].map(([b, r]) => [b, r.q]))});
+  const solo = document.querySelector('#dance-solo');
+  for (const a of lib.atoms) solo?.append(new Option(`${a.id} · ${lib.channels[a.channel].cn} · ${a.label} ×${a.members.length}`, a.id));
+}
+export function dance(mode, arg) {
+  if (!dancer || !state.ready) return;
+  if (mode === 'stop') { dancer.stop(); return; }
+  play(null, 0.3);
+  // a move still holding the arms (an idle habit) lets them down first: its arm rules releasing under the first block
+  // swung a forearm 140° in a frame
+  const busy = mover?.busy;
+  mover?.stop(state.time);
+  const feed = mode === 'score' ? drivers.score(dancer.lib) : mode === 'improvise' ? drivers.improvise() : mode === 'solo' ? drivers.solo(arg) : null;
+  dancer.start(state.time + (busy ? 0.8 : 0), feed);
+  state.track = null;
+}
 export function play(name, fade = 0.35, autonomous = false) {
   if (!mixer) return;
-  if (!autonomous) { clearRestPreview(); pet?.interrupt(8); }
+  if (!autonomous) { clearRestPreview(); pet?.interrupt(8); dancer?.stop(); }
   const next = name && clips[name] ? mixer.clipAction(clips[name]) : null;
   // The mixer blends a fading clip with the pose the bones had when the clip was first bound. That has to be the rest
   // pose (which every frame starts from), not whatever was on screen at this moment (gaze, breathing, a move): the
@@ -525,6 +547,7 @@ function tick(step = null, draw = true) {
     for (const [b, r] of restLocal) { b.quaternion.copy(r.q); b.position.copy(r.p); }
     // state.hold: freeze the playing clip at a time (inspection, screenshots)
     if (state.clip && state.hold != null) state.clip.time = state.hold;
+    dancer?.update(t);
     mixer?.update(dt);
     // The mixer writes a bone only when its value differs from the frame before (PropertyMixer.apply). Every frame here
     // starts by putting the bones back to rest, so a bone a clip holds still for two frames was left at rest: a held
@@ -572,7 +595,7 @@ function tick(step = null, draw = true) {
     pose('Tail1', [UP, Math.sin(state.wagPhase) * wagAmp]);
     if (mover) {
       // idle habits every 6–15 s while nothing else is going on
-      if (!state.pet && !state.clip && !state.restPreview && !(state.restWeight > 0) && !mover.busy && face.name === 'neutral' && t > (state.nextTic ?? 8)) {
+      if (!state.pet && !state.clip && !dancer?.on && !state.restPreview && !(state.restWeight > 0) && !mover.busy && face.name === 'neutral' && t > (state.nextTic ?? 8)) {
         mover.play(TICS[Math.floor(Math.random() * TICS.length)], t, face);
         state.nextTic = t + 6 + Math.random() * 9;
       } else if (mover.busy) state.nextTic = Math.max(state.nextTic ?? 0, t + 6);
@@ -915,4 +938,23 @@ for(const button of previewButtons)button.addEventListener('click',()=>{
   else playRest(button.dataset.preview);
 });
 previewStop?.addEventListener('click',stopPreview);
-window.xj = {rest:playRest,restModes:RESTS,stopPreview,setLanguage, getLanguage, say, companionReply, setSplit, act, play, feel, move, emote, tick, render:paint, seek, pause, stepFrame, renderer, scene, tics: TICS, moves: () => MOVES, get mover() { return mover; }, clips: () => clips, get mixer() { return mixer; }, model: () => model, setStyle, setOutline, state, B, springs, camera, controls, clock, poke: p => poke(W(...p)), get face() { return face; }};
+{
+  const panel = document.querySelector('#dance'), log = document.querySelector('#dance-log'), cmd = document.querySelector('#dance-cmd');
+  for (const b of panel?.querySelectorAll('[data-dance]') ?? []) b.addEventListener('click', () => dance(b.dataset.dance));
+  document.querySelector('#dance-solo')?.addEventListener('change', e => { if (e.target.value) dance('solo', e.target.value); });
+  document.querySelector('#dance-push')?.addEventListener('click', () => {
+    let b;
+    try { b = JSON.parse(cmd.value); } catch { log.textContent = '指令不是合法 JSON'; return; }
+    if (!dancer.on) dance('push');
+    dancer.push(...(Array.isArray(b) ? b : [b]));
+  });
+  // the panel: enabled once ready; the last blocks played, newest first
+  setInterval(() => {
+    if (!panel) return;
+    for (const el of panel.querySelectorAll('button, select')) el.disabled = !state.ready || !dancer;
+    if (!dancer) return;
+    const head = dancer.on ? `第 ${dancer.count} 块 · ${dancer.bpm} bpm · 队列 ${dancer.queue.length}` : '未在跳';
+    log.textContent = [head, ...dancer.log.map(r => `#${String(r.n).padStart(3)} ${dancer.channels.map(c => (r[c] ?? '').padEnd(8)).join('')}${r.size < 1 ? ` ×${r.size}` : ''}`)].join('\n');
+  }, 200);
+}
+window.xj = {dance, get dancer() { return dancer; }, rest:playRest,restModes:RESTS,stopPreview,setLanguage, getLanguage, say, companionReply, setSplit, act, play, feel, move, emote, tick, render:paint, seek, pause, stepFrame, renderer, scene, tics: TICS, moves: () => MOVES, get mover() { return mover; }, clips: () => clips, get mixer() { return mixer; }, model: () => model, setStyle, setOutline, state, B, springs, camera, controls, clock, poke: p => poke(W(...p)), get face() { return face; }};

@@ -27,6 +27,10 @@
 !/scripts/check_desktop_i18n.mjs
 !/scripts/check_pet_rest.mjs
 !/scripts/check_pet_motion_sync.mjs
+!/scripts/samba_lib.mjs
+!/scripts/samba_beats.mjs
+!/scripts/samba_atoms.mjs
+!/scripts/check_stream_dance.mjs
 
 /docs/*
 !/docs/install-0.6.txt
