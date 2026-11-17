@@ -4,7 +4,7 @@
 
 - **Mac M 系列 / macOS 14+**：下载 `Xiaojing-0.6.0-macOS-arm64.dmg`，打开后将 Xiaojing 拖入 Applications。不支持 Intel Mac。
 - **Windows 10/11 x64**：下载 `Xiaojing-0.6.0-Windows-x64.exe`，直接运行。此包在 Mac 上交叉构建，尚未在真实 Windows 桌面验收。
-- 无须安装 Node 或 Python。请同时阅读 `使用说明.txt`；`SHA256SUMS.txt` 提供安装包的 SHA-256 校验值。GitHub 自动生成的 Source code 文件是源码，不是安装包。
+- 无须安装 Node 或 Python。请同时阅读 `INSTALL.txt`；`SHA256SUMS.txt` 提供安装包的 SHA-256 校验值。GitHub 自动生成的 Source code 文件是源码，不是安装包。
 
 ### 本版行为
 
