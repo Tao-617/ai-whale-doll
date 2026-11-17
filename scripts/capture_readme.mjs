@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import {pathToFileURL} from 'node:url';
 
 const core=process.env.PLAYWRIGHT_CORE;
+const clip=process.argv.find(a=>a.startsWith('--clip='))?.slice(7);
 const {chromium}=await import(core?pathToFileURL(core).href:'playwright-core');
 const out=new URL('../docs/media/',import.meta.url).pathname;
 const report=new URL('../reports/readme-media/',import.meta.url).pathname;
@@ -52,13 +53,14 @@ try{
  await pet.evaluate(()=>{xj.companionReply({speak:true,text:'你好呀，我是小鲸～',emotion:'happy',motion:'wave'});steps(40);});
  await pet.waitForTimeout(300);await pet.screenshot({path:out+'hello.png'});console.log('Captured hello.png');
  if(!process.argv.includes('--stills')){
-  await movie(pet,'walk-climb',8,()=>{
-   xjPet.interrupt(0);xj.mover.stop();xj.state.bubbleUntil=0;document.querySelector('#bubble').classList.remove('show');xj.state.petAttendUntil=0;
-   xjPet.host({active:true,chatter:false,parked:true});
+  if(!clip||clip==='walk-climb')await movie(pet,'walk-climb',8,()=>{
+   xjPet.interrupt(0);xj.mover.stop();xj.state.bubbleUntil=0;xj.state.petAttendUntil=0;
+   const bubble=document.querySelector('#bubble');bubble.style.transition='none';bubble.textContent='';bubble.classList.remove('show');
+   xjPet.host({active:true,chatter:false,parked:true,travel:{id:10,gait:'walk',dx:300,dy:0,speed:110,kind:'stroll',facing:1}});steps(24);
   },i=>{
    const climb=i>=60;xjPet.host({active:true,chatter:false,parked:true,travel:{id:10,gait:'walk',dx:climb?0:300,dy:climb?200:0,speed:climb?80:110,kind:'stroll',facing:climb?-1:1}});steps(2);
   });
-  await movie(pet,'expressions',10,()=>{
+  if(!clip||clip==='expressions')await movie(pet,'expressions',10,()=>{
    xjPet.host({active:false});xjPet.interrupt(0);xj.mover.stop();xj.state.bubbleUntil=0;xj.state.petAttendUntil=0;steps(50);
   },i=>{
    if(i===0)xj.companionReply({speak:true,text:'你好呀，我是小鲸～',emotion:'happy',motion:'wave'});
