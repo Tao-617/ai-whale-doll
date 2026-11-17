@@ -3,6 +3,7 @@
 /*
 !/.gitignore
 !/README.md
+!/README.en.md
 !/THIRD_PARTY_NOTICES.md
 !/web/
 !/companion/
@@ -21,10 +22,12 @@
 /scripts/*
 !/scripts/serve.py
 !/scripts/capture_readme.mjs
+!/scripts/check_pet_climb.mjs
 
 /docs/*
 !/docs/install-0.6.txt
 !/docs/release-v0.6.0.md
+!/docs/release-v0.6.1.md
 !/docs/media/
 
 # Never commit local configuration, credentials, runtime state or build output.

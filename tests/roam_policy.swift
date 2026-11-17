@@ -29,6 +29,17 @@ import CoreGraphics
         check(tiny.width == 0 && tiny.height == 0, "oversized pet cannot form negative bounds")
         check(RoamPath.make(from: .zero, area: tiny, target: CGPoint(x: 999, y: 999), now: 0, scale: 1, running: true, id: 0) == nil, "no room means no trip")
         let rail = CGRect(x: -1500, y: 40, width: 1000, height: 500)
+        for scale in [CGFloat(260.0/360), 1, CGFloat(520.0/360)] { for running in [false,true] {
+            let climb=RoamPath.make(from:rail.origin,area:rail,target:CGPoint(x:rail.minX,y:rail.minY+300),now:0,scale:scale,running:running,id:1)!
+            let walk=RoamPath.make(from:rail.origin,area:rail,target:CGPoint(x:rail.minX+300,y:rail.minY),now:0,scale:scale,running:running,id:2)!
+            let visit=RoamPath.make(from:rail.origin,area:rail,target:CGPoint(x:rail.minX,y:rail.minY+300),now:0,scale:scale,running:running,id:3,intentional:true)!
+            check(climb.duration == walk.duration*4, "climb must be four times slower than horizontal travel")
+            check(visit.duration == walk.duration, "observation visits retain their own timing")
+            let mid=RoamPath.turnTime+climb.duration/2, sample=climb.sample(mid)
+            let before=climb.sample(mid-0.001).point, after=climb.sample(mid+0.001).point
+            check(abs(sample.speed-Double(hypot(after.x-before.x,after.y-before.y))/0.002)<0.001, "renderer receives actual climbing speed")
+            check(abs(sample.speed-Double((running ? 155:85)*scale/4))<1e-8 && sample.direction.y>0, "upward speed and direction")
+        }}
         func onEdge(_ p: CGPoint) -> Bool {
             abs(p.y - rail.minY) < 1e-6 || abs(p.y - rail.maxY) < 1e-6 || abs(p.x - rail.minX) < 1e-6 || abs(p.x - rail.maxX) < 1e-6
         }

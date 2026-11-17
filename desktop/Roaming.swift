@@ -11,6 +11,7 @@ struct RoamPath {
     let gait: String
     let id: Int
     let points: [CGPoint]
+    let climbWeight: CGFloat
     static let turnTime: TimeInterval = 0.4
 
     static func area(screen: CGRect, size: CGSize) -> CGRect {
@@ -80,27 +81,34 @@ struct RoamPath {
         let start = clamp(p, to: area), end = intentional ? clamp(target,to:area) : edge(target, in: area)
         var points = route(from: start, to: end, in: area)
         if intentional, let last=points.last, hypot(last.x-end.x,last.y-end.y)>0.01 { points.append(end) }
-        let distance = zip(points, points.dropFirst()).reduce(CGFloat(0)) { $0 + hypot($1.1.x - $1.0.x, $1.1.y - $1.0.y) }
+        guard zip(points,points.dropFirst()).reduce(CGFloat(0), { $0+hypot($1.1.x-$1.0.x,$1.1.y-$1.0.y) }) >= 2 else { return nil }
+        let climbWeight: CGFloat = intentional ? 1 : 4
+        let distance = zip(points, points.dropFirst()).reduce(CGFloat(0)) {
+            let dx=$1.1.x-$1.0.x, dy=$1.1.y-$1.0.y
+            return $0 + hypot(dx,dy) * (abs(dy)>abs(dx)*2 ? climbWeight:1)
+        }
         guard distance >= 2 else { return nil }
         let speed = (running ? 155.0 : 85.0) * scale
         return RoamPath(start: start, end: end, started: now,
-                        duration: max(1.8, 1.5 * distance / speed), gait: running ? "run" : "walk", id: id, points: points)
+                        duration: max(1.8, 1.5 * distance / speed), gait: running ? "run" : "walk", id: id, points: points, climbWeight: climbWeight)
     }
     func sample(_ now: TimeInterval) -> (point: CGPoint, speed: Double, done: Bool, direction: CGPoint) {
         let u = min(1, max(0, (now - started - Self.turnTime) / duration))
         let ease = u * u * (3 - 2 * u)
         let segments = Array(zip(points, points.dropFirst()))
         let lengths = segments.map { hypot($0.1.x - $0.0.x, $0.1.y - $0.0.y) }
-        let distance = lengths.reduce(0, +)
+        let weights: [CGFloat] = segments.map { abs($0.1.y-$0.0.y)>abs($0.1.x-$0.0.x)*2 ? climbWeight:1 }
+        let costs = zip(lengths,weights).map { $0*$1 }
+        let distance = costs.reduce(0, +)
         var remaining = distance * ease
         for (i, segment) in segments.enumerated() {
-            if remaining <= lengths[i] || i == segments.count - 1 {
-                let f = min(1, remaining / max(0.001, lengths[i]))
+            if remaining <= costs[i] || i == segments.count - 1 {
+                let f = min(1, remaining / max(0.001, costs[i]))
                 let d = CGPoint(x: segment.1.x - segment.0.x, y: segment.1.y - segment.0.y)
                 return (CGPoint(x: segment.0.x + d.x * f, y: segment.0.y + d.y * f),
-                        Double(distance) * 6 * u * (1 - u) / duration, u >= 1, d)
+                        Double(distance/weights[i]) * 6 * u * (1 - u) / duration, u >= 1, d)
             }
-            remaining -= lengths[i]
+            remaining -= costs[i]
         }
         return (end, 0, true, .zero)
     }

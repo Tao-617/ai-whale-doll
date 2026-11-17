@@ -29,7 +29,7 @@ async function openPage(pet,width,height){
  });
  return p;
 }
-async function movie(page,name,seconds,prepare,frame){
+async function movie(page,name,seconds,prepare,frame,gifWidth=400){
  await page.evaluate(prepare);
  const child=spawn('ffmpeg',['-hide_banner','-loglevel','error','-y','-f','image2pipe','-framerate','15','-vcodec','png','-i','pipe:0','-an','-c:v','libx264','-preset','medium','-crf','21','-pix_fmt','yuv420p','-movflags','+faststart',out+name+'.mp4'],{stdio:['pipe','ignore','inherit']});
  const done=once(child,'close');
@@ -41,7 +41,7 @@ async function movie(page,name,seconds,prepare,frame){
  }
  child.stdin.end();const [code]=await done;assert.equal(code,0);
  console.log('Recorded '+name+'.mp4');
- const gif=spawn('ffmpeg',['-hide_banner','-loglevel','error','-y','-i',out+name+'.mp4','-filter_complex','fps=12,scale=400:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=3:diff_mode=rectangle','-loop','0',out+name+'.gif'],{stdio:['ignore','ignore','inherit']});
+ const gif=spawn('ffmpeg',['-hide_banner','-loglevel','error','-y','-i',out+name+'.mp4','-filter_complex',`fps=12,scale=${gifWidth}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=3:diff_mode=rectangle`,'-loop','0',out+name+'.gif'],{stdio:['ignore','ignore','inherit']});
  assert.equal((await once(gif,'close'))[0],0);console.log('Encoded '+name+'.gif');
 }
 try{
@@ -58,8 +58,17 @@ try{
    const bubble=document.querySelector('#bubble');bubble.style.transition='none';bubble.textContent='';bubble.classList.remove('show');
    xjPet.host({active:true,chatter:false,parked:true,travel:{id:10,gait:'walk',dx:300,dy:0,speed:110,kind:'stroll',facing:1}});steps(24);
   },i=>{
-   const climb=i>=60;xjPet.host({active:true,chatter:false,parked:true,travel:{id:10,gait:'walk',dx:climb?0:300,dy:climb?200:0,speed:climb?80:110,kind:'stroll',facing:climb?-1:1}});steps(2);
+   const climb=i>=60;xjPet.host({active:true,chatter:false,parked:true,travel:{id:10,gait:'walk',dx:climb?0:300,dy:climb?200:0,speed:climb?42:110,kind:'stroll',facing:climb?-1:1}});steps(2);
   });
+  if(!clip||clip==='climb-rig'){
+   const rig=await openPage(true,1200,720);
+   await movie(rig,'climb-rig',8,()=>{
+    xj.setSplit(true);xjPet.host({active:true,chatter:false,parked:true,travel:{id:20,gait:'walk',dx:0,dy:200,speed:42,kind:'stroll',facing:1}});steps(90);
+   },i=>{
+    xjPet.host({active:true,chatter:false,parked:true,travel:{id:20,gait:'walk',dx:0,dy:i<60?200:-200,speed:42,kind:'stroll',facing:1}});steps(2);
+   },600);
+   await rig.close();
+  }
   if(!clip||clip==='expressions')await movie(pet,'expressions',10,()=>{
    xjPet.host({active:false});xjPet.interrupt(0);xj.mover.stop();xj.state.bubbleUntil=0;xj.state.petAttendUntil=0;steps(50);
   },i=>{

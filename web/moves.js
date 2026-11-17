@@ -82,7 +82,7 @@ class Spring3 {
 const wq = o => o.getWorldQuaternion(new THREE.Quaternion());
 const wp = o => o.getWorldPosition(new THREE.Vector3());
 // rotate a bone about a world axis through its own pivot, by `angle` (radians)
-function turnWorld(bone, axis, angle) {
+export function turnWorld(bone, axis, angle) {
   if (!angle) return;
   const q = new THREE.Quaternion().setFromAxisAngle(axis, angle);
   bone.quaternion.copy(wq(bone.parent).invert().multiply(q.multiply(wq(bone))));
@@ -105,7 +105,7 @@ function aimAt(bone, local, dir, w = 1) {
   bone.updateMatrixWorld(true);
 }
 // two-bone IK: root → mid → end reaching `target`, the middle joint bending toward `pole` (world direction)
-function twoBone(root, mid, end, target, pole, w = 1) {
+export function twoBone(root, mid, end, target, pole, w = 1) {
   const S = wp(root), a = wp(mid).distanceTo(S), b = wp(end).distanceTo(wp(mid));
   const toT = target.clone().sub(S);
   const D = THREE.MathUtils.clamp(toT.length(), Math.abs(a - b) + 1e-4, a + b - 1e-4);
@@ -419,10 +419,11 @@ export class Mover {
   // Arms: each fist goes to its pose's anchor on the body, then the same rules for every pose and motion keep it
   // honest: a fist stays out of the head, the chest and the dress and off the other fist, and the elbow swings round
   // the shoulder-to-fist line as far as it must to keep the sleeve out of them.
-  arms(dt, t) {
+  arms(dt, t, external = null) {
     const B = this.B, goals = {};
     for (const s of this.shells) s.sync();
     for (const side of ['L', 'R']) {
+      if (external?.[side]) { goals[side] = external[side].target.clone(); continue; }
       const a = this.arm[side], w = a.w.x;
       if (a.pose) {
         const p = ARM[a.pose], an = this.anchor[a.pose][side];
@@ -440,7 +441,7 @@ export class Mover {
     // elbow or sleeve is inside her, the fist is moved out and the arm solved again, bending the way it already bends.
     const guarded = {}, gGoals = {};
     for (const [side, S] of [['L', 'Left'], ['R', 'Right']]) {
-      if (this.arm[side].w.x > 0.995 && goals[side]) continue;      // a pose fully in charge places the arm itself
+      if ((external?.[side] || this.arm[side].w.x > 0.995) && goals[side]) continue;
       const a = this.arm[side], sh = wp(B[S + 'Arm']), E = wp(B[S + 'ForeArm']);
       const fc = B[S + 'ForeArm'].localToWorld(this.fist[side].local.clone());
       const inside = Math.max(...this.shells.map(s => Math.max(s.depth(fc, this.fist[side].radius * this.clear(s)), s.depth(E, 0.02),
@@ -473,18 +474,19 @@ export class Mover {
       }
       const [head, torso, skirt] = this.shells;
       for (const [side, goal] of Object.entries(goals)) {
-        const a = this.arm[side], p = guarded[side] ? null : ARM[a.lastPose], sw = guarded[side] ? 'gswivel' : 'swivel', sx = side === 'L' ? 1 : -1, S = side === 'L' ? 'Left' : 'Right';
+        const a = this.arm[side], drive = external?.[side], p = guarded[side] ? null : ARM[a.lastPose], sw = guarded[side] ? 'gswivel' : drive ? 'cswivel' : 'swivel', sx = side === 'L' ? 1 : -1, S = side === 'L' ? 'Left' : 'Right';
+        a[sw] ??= 0;
         const root = B[S + 'Arm'], mid = B[S + 'ForeArm'], fl = this.fist[side].local;
         const sh = wp(root), la = wp(mid).distanceTo(sh), lb = mid.localToWorld(fl.clone()).distanceTo(wp(mid));
         const toT = goal.clone().sub(sh);
         const D = THREE.MathUtils.clamp(toT.length(), Math.abs(la - lb) + 1e-4, (la + lb) * 0.99);
         const d = toT.normalize(), P = sh.clone().addScaledVector(d, D);
-        const pole = p ? V(p.pole[0] * sx, p.pole[1], p.pole[2]).applyQuaternion(wq(B.Spine2)) : guarded[side];
+        const pole = drive ? drive.pole.clone() : p ? V(p.pole[0] * sx, p.pole[1], p.pole[2]).applyQuaternion(wq(B.Spine2)) : guarded[side];
         // The elbow's side is the pole's part across the arm's line. It can turn over in one frame: when the line swings
         // past the pole (the part shrinks to nothing and comes back reversed), or when the pose changes to one whose
         // pole points the other way (fist pump → hands on hips: 138° on a forearm in 1/60 s). So the side the elbow is
         // on turns about the arm's line at no more than 500°/s from where it was.
-        const n0 = pole.sub(d.clone().multiplyScalar(pole.dot(d))), key = guarded[side] ? 'gn' : 'n';
+        const n0 = pole.sub(d.clone().multiplyScalar(pole.dot(d))), key = guarded[side] ? 'gn' : drive ? 'cn' : 'n';
         if (n0.lengthSq() < 1e-8) n0.set(0, -1, 0);
         n0.normalize();
         const prev = a[key] && a[key + 'At'] > t - 0.1 ? a[key].clone().addScaledVector(d, -a[key].dot(d)) : null;
@@ -515,7 +517,7 @@ export class Mover {
           if (k < bestCost - 1e-6) { bestCost = k; best = th; }
         }
         a[sw] += (best - a[sw]) * (1 - Math.exp(-dt * 10));
-        const w = p ? Math.min(1, a.w.x) : a.guard;
+        const w = drive ? drive.weight : p ? Math.min(1, a.w.x) : a.guard;
         aim(root, mid, elbow(a[sw]).sub(sh), w);
         aimAt(mid, fl, P.sub(wp(mid)), w);
       }
@@ -545,7 +547,7 @@ export class Mover {
       nd.sub(c).multiplyScalar(0.5).addScaledVector(up, rise - 0.5 * (nd.dot(up) + c.dot(up) * 0) * 0).add(c);
       const lack = c.dot(up) + rise - nd.dot(up);
       nd.addScaledVector(up, lack).normalize();
-      aim(col, B[S + 'Arm'], nd, Math.min(1, this.arm[side].w.x));
+      aim(col, B[S + 'Arm'], nd, external?.[side]?.weight ?? Math.min(1, this.arm[side].w.x));
     }
     pass(goals, {});
   }

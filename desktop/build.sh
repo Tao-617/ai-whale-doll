@@ -23,7 +23,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleIdentifier</key><string>io.opengrove.xiaojing-pet</string>
 <key>CFBundleExecutable</key><string>Xiaojing</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.6</string>
+<key>CFBundleShortVersionString</key><string>0.6.1</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSScreenCaptureUsageDescription</key><string>小鲸偶尔看一眼你允许的应用当前窗口，并交给云端模型生成陪伴气泡。不会保存截图。</string>
 <key>LSUIElement</key><true/>

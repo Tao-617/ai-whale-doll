@@ -1,12 +1,14 @@
 # 小鲸 · AI Whale Doll
 
+**简体中文** · [English](README.en.md)
+
 一个会沿屏幕边缘散步、攀爬、做小动作的 3D 桌宠。可以拎起来、抓着转圈，也可以配置 AI，让她用气泡聊天、偶尔看看你正在做什么。
 
 <p align="center"><img src="docs/media/hello.png" width="320" alt="小鲸挥手打招呼，头顶显示对话气泡"></p>
 
-**[下载安装包](https://github.com/Tao-617/ai-whale-doll/releases/tag/v0.6.0)** · [安装与启动](#安装与启动) · [配置 AI 聊天](#配置-ai-聊天) · [开启观察与主动移动](#开启观察与主动移动) · [从源码运行](#从源码运行)
+**[下载安装包](https://github.com/Tao-617/ai-whale-doll/releases/tag/v0.6.1)** · [安装与启动](#安装与启动) · [配置 AI 聊天](#配置-ai-聊天) · [开启观察与主动移动](#开启观察与主动移动) · [从源码运行](#从源码运行)
 
-当前为 **0.6.0 测试版**。Mac 已在本机启动验证；Windows 包由 Mac 交叉构建，尚待真实 Windows 桌面验收。安装包未做 Apple 公证或 Windows 商业代码签名，首次运行可能出现系统提示。
+当前为 **0.6.1 测试版**。Mac 已在本机启动验证；Windows 包由 Mac 交叉构建，尚待真实 Windows 桌面验收。安装包未做 Apple 公证或 Windows 商业代码签名，首次运行可能出现系统提示。
 
 ## 效果预览
 
@@ -16,6 +18,14 @@
 | [查看 8 秒 MP4](docs/media/walk-climb.mp4) | [查看 10 秒 MP4](docs/media/expressions.mp4) |
 
 以上素材录自项目测试页，使用固定镜头预览真实模型与动作；气泡是固定演示台词。录制没有读取真实桌面内容，也没有调用云端模型。桌面位置由原生外壳控制，因此这里展示的是原地动作预览。
+
+### 四肢攀爬 · 0.6.1
+
+攀爬时交替换手、抬膝和蹬腿，身体随支撑轻微转移重心。采用背面偏侧朝向；向下爬会反向换抓点，停住时保持姿势。沿侧边的速度比走路慢，动作节奏跟随实际位移。
+
+![实际模型与骨骼并排显示向上、向下攀爬](docs/media/climb-rig.gif)
+
+[查看 8 秒模型／骨骼对照 MP4](docs/media/climb-rig.mp4)。长发和裙摆会遮住部分远侧肢体；右侧骨骼视图用于核对四肢是否实际参与。
 
 <details>
 <summary>查看完整测试页截图</summary>
@@ -30,8 +40,8 @@
 
 | 平台 | 下载 | 系统要求 |
 | --- | --- | --- |
-| Mac | [Xiaojing-0.6.0-macOS-arm64.dmg](https://github.com/Tao-617/ai-whale-doll/releases/download/v0.6.0/Xiaojing-0.6.0-macOS-arm64.dmg) | M 系列芯片，macOS 14 及以上；不支持 Intel Mac |
-| Windows | [Xiaojing-0.6.0-Windows-x64.exe](https://github.com/Tao-617/ai-whale-doll/releases/download/v0.6.0/Xiaojing-0.6.0-Windows-x64.exe) | Windows 10/11 x64；免安装测试版 |
+| Mac | [Xiaojing-0.6.1-macOS-arm64.dmg](https://github.com/Tao-617/ai-whale-doll/releases/download/v0.6.1/Xiaojing-0.6.1-macOS-arm64.dmg) | M 系列芯片，macOS 14 及以上；不支持 Intel Mac |
+| Windows | [Xiaojing-0.6.1-Windows-x64.exe](https://github.com/Tao-617/ai-whale-doll/releases/download/v0.6.1/Xiaojing-0.6.1-Windows-x64.exe) | Windows 10/11 x64；免安装测试版 |
 
 ### Mac
 
@@ -191,11 +201,11 @@ npm test
 npm run pack
 ```
 
-然后到项目中的 `desktop/dist/windows/` 双击 `Xiaojing-0.6.0-Windows-x64.exe`。开发时可在 **Windows** 的 `desktop/windows/` 目录运行 `npx electron .`。详细实现见 [Windows 开发说明](desktop/windows/README.md)。
+然后到项目中的 `desktop/dist/windows/` 双击 `Xiaojing-0.6.1-Windows-x64.exe`。开发时可在 **Windows** 的 `desktop/windows/` 目录运行 `npx electron .`。详细实现见 [Windows 开发说明](desktop/windows/README.md)。
 
 ## 验证与限制
 
-Swift 几何／缩放检查 7,743 项、观察策略检查 24 项，Python worker 检查 9 项，Windows Node 测试 10 项通过。三档尺寸的攀爬、走路切换、气泡后归边已在浏览器中验证。模型关注点由 AI 判断，可能不准确。Windows 的多显示器 DPI 和截图兼容性尚待实机确认，且暂不包含 Mac 壁纸模式。
+Swift 几何／缩放及观察策略检查、Python worker 检查、Windows Node 测试均通过。攀爬以真实模型的整体／骨骼视图检查，并验证双腿屈伸、上下方向、停步抓握、走路和抓取切换，以及三档尺寸的显示。模型关注点由 AI 判断，可能不准确。Windows 的多显示器 DPI 和截图兼容性尚待实机确认，且暂不包含 Mac 壁纸模式。
 
 在项目根目录运行离线检查（Swift 部分需要 Mac）：
 

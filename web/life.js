@@ -6,13 +6,6 @@ const STROLL_LINES = [
   '桌面好大，腿腿好短。', '只是路过，没有急事。', '今天也是忙着溜达的一天。', '拐个弯，换个方向～',
   '我给自己安排了一个小散步。', '嘿咻，前面就是拐角啦。', '小鲸巡逻中，请慢慢忙。', '走两步，心情就亮一点。',
 ];
-const CLIMB = {id:'edge_climb',repeat:4,steps:[
-  {t:0,arms:{L:'up',R:'reach'},body:{up:-0.15},face:'curious',look:'up'},
-  {t:0.45,arms:{L:'reach',R:'up'},body:{up:0.2}},
-  {t:0.9,arms:{L:'up',R:'reach'},body:{up:-0.15}},
-  {t:1.35,arms:{L:'reach',R:'up'},body:{up:0.2}},
-  {t:1.8,arms:{L:'up',R:'reach'},body:{up:-0.15}}, {t:2.2}
-]};
 export class PetLife {
   constructor(x) {
     this.x = x;
@@ -48,7 +41,7 @@ export class PetLife {
         this.x.face()?.set('smile', 0, now);
       }
       if(this.travel?.id!==travel.id || this.travel?.gait!==travel.gait){
-        if(this.x.mover()?.playing===CLIMB.id)this.x.mover().stop();
+        if(travel.gait==='climb')this.x.mover()?.stop();
         this.x.playClip(travel.gait==='climb'?null:travel.gait,0.3);
       }
       this.travel = travel;
@@ -60,7 +53,7 @@ export class PetLife {
   }
   stopTravel() {
     if (this.travel || this.mode === 'waiting') this.x.playClip(null, 0.25);
-    if(this.x.mover()?.playing===CLIMB.id)this.x.mover().stop();
+    this.x.state.petClimb=null;
     this.travel = null;
     this.mode = 'rest';
   }
@@ -76,12 +69,12 @@ export class PetLife {
     const blocked = !this.active || state.petHeld || state.petGrab || this.x.settling() ||
       this.x.face()?.reaction || (state.bubbleBlocking !== false && now < (state.bubbleUntil ?? 0)) || now < (state.petAttendUntil ?? 0);
     if (blocked) this.interrupt(3);
-    const target = this.travel ? Math.sign(this.travel.facing || this.travel.dx || 1) * (1.05 + 0.28 * Math.abs(this.travel.dx) /
-      Math.max(1, Math.hypot(this.travel.dx, this.travel.dy))) : 0;
+    const target = this.travel ? Math.sign(this.travel.facing || this.travel.dx || 1) * (this.travel.gait==='climb'?Math.PI*.70:
+      1.05 + 0.28 * Math.abs(this.travel.dx) / Math.max(1, Math.hypot(this.travel.dx, this.travel.dy))) : 0;
     this.heading += (target - this.heading) * (1 - Math.exp(-dt * 7));
     state.petHeading = this.heading;
     state.petRoaming = !!this.travel;
-    if(!blocked && this.travel?.gait==='climb' && this.x.mover()?.playing!==CLIMB.id)this.x.mover()?.play(CLIMB,now,this.x.face());
+    state.petClimb=!blocked&&this.travel?.gait==='climb'?{speed:this.travel.speed,direction:this.travel.dy<0?-1:1}:null;
     if (this.travel && state.clip) {
       const nominal = (this.travel.gait === 'run' ? 155 : 85) * this.x.scale();
       state.clip.setEffectiveTimeScale(Math.max(0.15, Math.min(1.55, this.travel.speed / nominal)));

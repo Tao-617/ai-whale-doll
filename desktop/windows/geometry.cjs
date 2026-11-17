@@ -27,11 +27,13 @@ function make(p,dest,a,now,scale,running,id,kind='stroll') {
   const raw=[start,aa,...corners.map(x=>point(x,a)),bb,end],points=raw.filter((p,i)=>!i||Math.hypot(p.x-raw[i-1].x,p.y-raw[i-1].y)>.01);
   const lengths=points.slice(1).map((p,i)=>Math.hypot(p.x-points[i].x,p.y-points[i].y)),distance=lengths.reduce((a,b)=>a+b,0);
   if(distance<2)return null;
-  return{points,lengths,distance,start,end,now,duration:Math.max(1.8,1.5*distance/((running?155:85)*scale)),gait:running?'run':'walk',id,kind};
+  const weights=points.slice(1).map((p,i)=>kind!=='observation'&&Math.abs(p.y-points[i].y)>Math.abs(p.x-points[i].x)*2?4:1);
+  const costs=lengths.map((n,i)=>n*weights[i]),cost=costs.reduce((a,b)=>a+b,0);
+  return{points,lengths,distance,weights,costs,cost,start,end,now,duration:Math.max(1.8,1.5*cost/((running?155:85)*scale)),gait:running?'run':'walk',id,kind};
 }
-function sample(path,now) { const u=clamp((now-path.now-.4)/path.duration,0,1);let remain=path.distance*u*u*(3-2*u);
-  for(let i=0;i<path.lengths.length;i++){if(remain<=path.lengths[i]||i===path.lengths.length-1){const p=path.points[i],q=path.points[i+1],f=Math.min(1,remain/path.lengths[i]);
-    return {x:p.x+(q.x-p.x)*f,y:p.y+(q.y-p.y)*f,dx:q.x-p.x,dy:-(q.y-p.y),speed:path.distance*6*u*(1-u)/path.duration,done:u===1};}remain-=path.lengths[i];}
+function sample(path,now) { const u=clamp((now-path.now-.4)/path.duration,0,1);let remain=path.cost*u*u*(3-2*u);
+  for(let i=0;i<path.lengths.length;i++){if(remain<=path.costs[i]||i===path.lengths.length-1){const p=path.points[i],q=path.points[i+1],f=Math.min(1,remain/path.costs[i]);
+    return {x:p.x+(q.x-p.x)*f,y:p.y+(q.y-p.y)*f,dx:q.x-p.x,dy:-(q.y-p.y),speed:path.cost/path.weights[i]*6*u*(1-u)/path.duration,done:u===1};}remain-=path.costs[i];}
   return{...path.end,dx:0,dy:0,speed:0,done:true}; }
 function destination(focus,window,screen,size) {const p={x:window.x+window.width*focus.x,y:window.y+window.height*focus.y};
   if(p.x<screen.x||p.x>screen.x+screen.width||p.y<screen.y||p.y>screen.y+screen.height)return null;

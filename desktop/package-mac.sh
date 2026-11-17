@@ -13,4 +13,4 @@ codesign -s - --force --deep "$STAGE/Xiaojing.app" 2>/dev/null
 codesign --verify --strict --deep "$STAGE/Xiaojing.app"
 ln -s /Applications "$STAGE/Applications"
 cp "$HERE/../docs/install-0.6.txt" "$STAGE/使用说明.txt"
-hdiutil create -ov -format UDZO -fs HFS+ -volname Xiaojing -srcfolder "$STAGE" "$OUT/Xiaojing-0.6.0-macOS-$(uname -m).dmg"
+hdiutil create -ov -format UDZO -fs HFS+ -volname Xiaojing -srcfolder "$STAGE" "$OUT/Xiaojing-0.6.1-macOS-$(uname -m).dmg"

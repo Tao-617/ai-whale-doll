@@ -10,6 +10,7 @@ import {Face, EXPRESSIONS, SPECIALS} from './face.js';
 import {intentsFromDims, pickSpecial, speed} from './emotion.js';
 import {retargetClip} from './retarget.js';
 import {Mover, Picker, TICS} from './moves.js';
+import {Climber} from './climb.js';
 
 const canvas = document.querySelector('#stage');
 const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true, preserveDrawingBuffer: true});
@@ -59,7 +60,7 @@ const UP = W(0, 1, 0), RIGHT = W(1, 0, 0), FWD = W(0, 0, 1);
 
 const state = {time: 0, ready: false, style: 'toon', look: new THREE.Vector2(), eyes: new THREE.Vector2(), lookTarget: new THREE.Vector2()};
 const B = {};
-let model, mesh, hoop, pusher, mixer, mover, picker, MOVES = {}, clips = {}, restLocal = new Map(), face, outline, springs = [], colliders = [], restWorld = new Map(), materials = {};
+let model, mesh, hoop, pusher, mixer, mover, climber, picker, MOVES = {}, clips = {}, restLocal = new Map(), face, outline, springs = [], colliders = [], restWorld = new Map(), materials = {};
 
 // v2 (default): the single-mesh Tripo model on a Mixamo skeleton plus our spring bones (scripts/blender/v2/).
 // v1 (?model=v1): the 76-part model on our own Unity-named skeleton (scripts/blender/0x-*.py).
@@ -271,6 +272,7 @@ new GLTFLoader().load(CFG.file, gltf => {
       face: {eyeL: centroid(face.parts.eyeL), eyeR: centroid(face.parts.eyeR), mouth: centroid(face.parts.mouth)},
     };
     mover = new Mover(mb, body);
+    climber = new Climber(mb, mover);
   }
   if (CFG.clips) Promise.all([loadClips(), loadMoves()]).then(() => { state.ready = true; document.body.classList.add('ready'); });
   else { state.ready = true; document.body.classList.add('ready'); }
@@ -551,6 +553,7 @@ function tick(step = null, draw = true) {
       const r = mover.update(dt, t, face);
       state.moveEars = r.ears; state.moveTail = r.tail; state.moveLook = r.look;
     }
+    climber?.update(dt,t,state,camera,canvas);
     // Turn the whole posed skeleton after local gestures/IK, so their surface constraints stay in the same frame.
     // The bones reset next frame; the model root remains exclusively owned by the grab/pendulum physics.
     if (state.petHeading) {
@@ -815,4 +818,4 @@ const pet = new URLSearchParams(location.search).get('pet')
   ? setupPet({state, scene, camera, controls, renderer, canvas, model: () => model, mover: () => mover, face: () => face, mesh: () => mesh, pose, move, say, resize,
     playClip: (name, fade) => play(name, fade, true), findMove: id => MOVES[id] ?? TICS.find(m => m.id === id),
     hitPoint: (cx, cy) => { const r = canvas.getBoundingClientRect(); ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height * 2 - 1)); ray.setFromCamera(ndc, camera); return ray.intersectObject(mesh)[0]?.point ?? null; }}) : null;
-window.xj = {say, companionReply, setSplit, act, play, feel, move, emote, tick, seek, pause, stepFrame, renderer, scene, tics: TICS, moves: () => MOVES, get mover() { return mover; }, clips: () => clips, get mixer() { return mixer; }, model: () => model, setStyle, setOutline, state, B, springs, camera, controls, clock, poke: p => poke(W(...p)), get face() { return face; }};
+window.xj = {say, companionReply, setSplit, act, play, feel, move, emote, tick, render:paint, seek, pause, stepFrame, renderer, scene, tics: TICS, moves: () => MOVES, get mover() { return mover; }, clips: () => clips, get mixer() { return mixer; }, model: () => model, setStyle, setOutline, state, B, springs, camera, controls, clock, poke: p => poke(W(...p)), get face() { return face; }};

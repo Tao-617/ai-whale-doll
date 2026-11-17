@@ -1,6 +1,6 @@
 {
   "name": "xiaojing-desktop",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "description": "Xiaojing desktop companion",
   "author": "Xiaojing project",
@@ -19,7 +19,7 @@
       {"from": "native", "to": "native", "filter": ["*.ps1"]}
     ],
     "win": {"target": "portable", "signAndEditExecutable": false},
-    "portable": {"artifactName": "Xiaojing-0.6.0-Windows-x64.exe"},
+    "portable": {"artifactName": "Xiaojing-0.6.1-Windows-x64.exe"},
     "npmRebuild": false
   }
 }
