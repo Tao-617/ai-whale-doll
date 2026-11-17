@@ -26,6 +26,7 @@
 !/scripts/check_pet_climb.mjs
 !/scripts/check_desktop_i18n.mjs
 !/scripts/check_pet_rest.mjs
+!/scripts/check_pet_motion_sync.mjs
 
 /docs/*
 !/docs/install-0.6.txt

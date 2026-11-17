@@ -5,6 +5,20 @@ import CoreGraphics
     static func main() {
         var count = 0
         func check(_ ok: Bool, _ why: String) { precondition(ok, why); count += 1 }
+        var motion = RoamMotion()
+        motion.reset(.zero,at:0)
+        for i in 1...60 { motion.update(.zero,at:Double(i)/60) }
+        check(motion.confirmedSpeed(100,at:1)==0 && motion.stalled(100,at:1),"blocked window cannot report the planned speed")
+        motion.reset(.zero,at:1)
+        check(motion.confirmedSpeed(100,at:1)==0,"new route starts with no confirmed movement")
+        for i in 1...60 { motion.update(CGPoint(x:Double(i)*100/60,y:0),at:1+Double(i)/60) }
+        check(abs(motion.confirmedSpeed(100,at:2)-100)<1e-6 && !motion.stalled(100,at:2),"moving window drives the gait")
+        for i in 1...60 { motion.update(CGPoint(x:100,y:0),at:2+Double(i)/60) }
+        check(motion.confirmedSpeed(100,at:3)==0 && motion.stalled(100,at:3),"a trip that stops moving is cancelled")
+        check(!motion.stalled(0,at:3),"turning in place is not a blocked trip")
+        motion.reset(.zero,at:4)
+        for i in 1...60 { motion.update(CGPoint(x:(Double(i)/6).rounded(),y:0),at:4+Double(i)/60) }
+        check(motion.confirmedSpeed(10,at:5)>5 && !motion.stalled(10,at:5),"pixel rounding does not stall a slow walk")
         let ink=CGRect(x:0.21,y:0.17,width:0.58,height:0.65),display=CGRect(x:-1920,y:-150,width:1920,height:1080)
         for width in [CGFloat(260),360,520] {
             let size=CGSize(width:width,height:(width*4/3).rounded()),a=RoamPath.area(screen:display,size:size,footprint:ink)

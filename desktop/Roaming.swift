@@ -1,6 +1,31 @@
 import Foundation
 import CoreGraphics
 
+// Observe the actual rounded window positions, not just the route's intended velocity.
+// A short history absorbs pixel rounding; a blocked window quickly reports zero and cancels its trip.
+struct RoamMotion {
+    private var samples: [(time: TimeInterval, point: CGPoint)] = []
+    private var lastMoved: TimeInterval = 0
+    private var speed: Double = 0
+    mutating func reset(_ point: CGPoint, at now: TimeInterval) {
+        samples = [(now,point)]; lastMoved = now; speed = 0
+    }
+    mutating func update(_ point: CGPoint, at now: TimeInterval) {
+        guard let last = samples.last, now > last.time else { reset(point,at:now); return }
+        if hypot(point.x-last.point.x,point.y-last.point.y) > 0.25 { lastMoved = now }
+        samples.append((now,point))
+        while samples.count > 2 && samples[1].time <= now-0.15 { samples.removeFirst() }
+        let first = samples[0]
+        speed = hypot(point.x-first.point.x,point.y-first.point.y)/(now-first.time)
+    }
+    func confirmedSpeed(_ planned: Double, at now: TimeInterval) -> Double {
+        now-lastMoved > 0.2 ? 0 : min(max(0,planned),speed)
+    }
+    func stalled(_ planned: Double, at now: TimeInterval) -> Bool {
+        planned > 4 && speed < 1 && now-lastMoved > 0.8
+    }
+}
+
 // Window origins stay inside one display's usable area (excluding the menu bar and Dock).
 // Keep this geometry independent of AppKit so small displays and negative monitor coordinates can be checked.
 struct RoamPath {

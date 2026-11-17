@@ -1,4 +1,13 @@
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+class Motion {
+ reset(p,t){this.samples=[{p:{x:p.x,y:p.y},t}];this.lastMoved=t;this.speed=0;}
+ update(p,t){const last=this.samples?.at(-1);if(!last||t<=last.t){this.reset(p,t);return;}
+  if(Math.hypot(p.x-last.p.x,p.y-last.p.y)>.25)this.lastMoved=t;
+  this.samples.push({p:{x:p.x,y:p.y},t});while(this.samples.length>2&&this.samples[1].t<=t-.15)this.samples.shift();
+  const first=this.samples[0];this.speed=Math.hypot(p.x-first.p.x,p.y-first.p.y)/(t-first.t);}
+ confirmedSpeed(planned,t){return t-this.lastMoved>.2?0:Math.min(Math.max(0,planned),this.speed||0);}
+ stalled(planned,t){return planned>4&&this.speed<1&&t-this.lastMoved>.8;}
+}
 function area(s,size,f={x:0,y:0,width:1,height:1}) {const w=size.width*f.width,h=size.height*f.height;
  return {x:s.x+Math.min(8,Math.max(0,(s.width-w)/2))-size.width*f.x,y:s.y+Math.min(8,Math.max(0,(s.height-h)/2))-size.height*f.y,
   width:Math.max(0,s.width-w-16),height:Math.max(0,s.height-h-16)}; }
@@ -39,4 +48,4 @@ function sample(path,now) { const u=clamp((now-path.now-.4)/path.duration,0,1);l
 function destination(focus,window,screen,size) {const p={x:window.x+window.width*focus.x,y:window.y+window.height*focus.y};
   if(p.x<screen.x||p.x>screen.x+screen.width||p.y<screen.y||p.y>screen.y+screen.height)return null;
   return bounded({x:p.x<screen.x+screen.width/2?p.x+24:p.x-size.width-24,y:p.y-size.height/2},area(screen,size));}
-module.exports={area,bounded,edge,onEdge,target,resized,make,sample,destination};
+module.exports={Motion,area,bounded,edge,onEdge,target,resized,make,sample,destination};

@@ -47,9 +47,12 @@ export class PetLife {
         this.tripStarted = now;
         this.x.face()?.set('smile', 0, now);
       }
-      if(this.travel?.id!==travel.id || this.travel?.gait!==travel.gait){
+      const clip=travel.gait==='climb'||!(travel.speed>.5)?null:travel.gait;
+      if(this.travel?.id!==travel.id || this.travel?.gait!==travel.gait || this.travelClip!==clip){
         if(travel.gait==='climb')this.x.mover()?.stop();
-        this.x.playClip(travel.gait==='climb'?null:travel.gait,0.3);
+        // A route may be turning, blocked or already stopped. Only actual motion starts the gait.
+        if(!clip&&this.x.state.clip)this.x.state.clip.setEffectiveTimeScale(0);
+        this.x.playClip(clip,0.2);this.travelClip=clip;
       }
       this.travel = travel;
     } else if (this.travel) {
@@ -62,6 +65,7 @@ export class PetLife {
     if (this.travel || this.mode === 'waiting') this.x.playClip(null, 0.25);
     this.x.state.petClimb=null;
     this.travel = null;
+    this.travelClip = null;
     this.mode = 'rest';
   }
   stopDance() {
@@ -90,7 +94,7 @@ export class PetLife {
     state.petClimb=!blocked&&this.travel?.gait==='climb'?{speed:this.travel.speed,direction:this.travel.dy<0?-1:1}:null;
     if (this.travel && state.clip) {
       const nominal = (this.travel.gait === 'run' ? 155 : 85) * this.x.scale();
-      state.clip.setEffectiveTimeScale(Math.max(0.15, Math.min(1.55, this.travel.speed / nominal)));
+      state.clip.setEffectiveTimeScale(Math.max(0, Math.min(1.55, this.travel.speed / nominal)));
     }
     if (!blocked && this.travel?.kind !== 'observation' && this.travel && this.chatter && now >= this.nextChatter &&
         now - this.tripStarted > 0.8 && now >= (state.bubbleUntil ?? 0) && this.travel.speed > 15) {

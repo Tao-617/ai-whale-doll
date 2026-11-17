@@ -9,6 +9,7 @@ let pet,tray,trayMenu,panel,store,storeFile,native,brain,ready=false,awake=true,
 let footprint={x:0,y:0,width:1,height:1};
 let shift={x:0,y:0},origin={x:0,y:0},lastPointer={x:0,y:0},pointerIntentUntil=0,tripID=0,lastHost='',lastSource=null,tickCount=0;
 const sizes=[{width:260,height:346},{width:360,height:480},{width:520,height:692}],now=()=>performance.now()/1000;
+const motion=new G.Motion();
 function save(){fs.mkdirSync(path.dirname(storeFile),{recursive:true});fs.writeFileSync(storeFile,JSON.stringify(store),{mode:0o600});}
 function changeLanguage(code){I.setLanguage(code);store.language=I.getLanguage();save();brain.cancel();brain.status(brain.enabled?'等待你停下来，再看一眼':'观察已暂停');
  if(panel&&!panel.isDestroyed()){panel.setTitle(T(panel.__mode==='settings'?'小鲸 · 模型设置':'和小鲸聊一句'));panel.webContents.send('language',{language:I.getLanguage(),messages:I.english});}host();rebuild();}
@@ -25,17 +26,17 @@ function stop(arrived=false){if(!trip&&!visit)return;const done=visit?.done;if(v
 function host(){if(!ready)return;const a=area(),s=trip?G.sample(trip,now()):null;
  const f=pet.getBounds(),screenBounds=display().workArea;
  const data={floor:Math.abs(f.y-a.y-a.height)<3,language:I.getLanguage(),visiting:!!visit||(!!brain.pending&&now()<visitArrivedUntil),viewport:{left:Math.max(0,screenBounds.x-f.x),right:Math.min(f.width,screenBounds.x+screenBounds.width-f.x),top:Math.max(0,screenBounds.y-f.y),bottom:Math.min(f.height,screenBounds.y+screenBounds.height-f.y)},active:canWander(),chatter:store.chatter!==false&&!brain.busy&&!brain.pending,parked:a.width+a.height<45||G.onEdge(pet.getBounds(),a),
-  travel:trip?{id:trip.id,gait:trip.gait,dx:s.dx,dy:s.dy,speed:s.speed,kind:trip.kind,
+  travel:trip?{id:trip.id,gait:trip.gait,dx:s.dx,dy:s.dy,speed:motion.confirmedSpeed(s.speed,now()),kind:trip.kind,
    facing:Math.abs(s.dy)>Math.abs(s.dx)*2?(pet.getBounds().x<area().x+area().width/2?-1:1):Math.sign(s.dx||1)}:null};
  const json=JSON.stringify(data);if(json===lastHost)return;lastHost=json;js('xjPet.host',data);}
 function wander(running){if(!canWander()||trip||visit)return;const a=area(),p=pet.getBounds(),recover=!G.onEdge(p,a);
  if(a.width+a.height<45||(!recover&&(brain.busy||brain.pending))||(brain.pending&&now()<visitArrivedUntil))return;
- trip=G.make(p,G.target(p,a,Math.random()),a,now(),p.width/360,running,++tripID,recover?'return':'stroll');if(trip){trip.area=JSON.stringify(a);pet.setPosition(Math.round(trip.start.x),Math.round(trip.start.y));adopt();host();}}
+ trip=G.make(p,G.target(p,a,Math.random()),a,now(),p.width/360,running,++tripID,recover?'return':'stroll');if(trip){trip.area=JSON.stringify(a);pet.setPosition(Math.round(trip.start.x),Math.round(trip.start.y));adopt();motion.reset(pet.getBounds(),now());host();}}
 function approach(source,focus,done){if(!canWander()||!brain.enabled)return false;
  const bounds=screen.screenToDipRect(null,source.bounds),f=pet.getBounds(),target=G.destination(focus,bounds,display().workArea,f);if(!target)return false;
  stop();const token=++tripID;visit={token,source,done};js('xjPet.prepareVisit').then(()=>{if(visit?.token!==token)return;
   const a=area(),p=pet.getBounds();trip=G.make(p,target,a,now(),p.width/360,true,token,'observation');
-  if(!trip||trip.duration>=18){stop(true);return;}trip.area=JSON.stringify(a);adopt();host();});return true;}
+  if(!trip||trip.duration>=18){stop(true);return;}trip.area=JSON.stringify(a);adopt();motion.reset(pet.getBounds(),now());host();});return true;}
 function speak(reply){stop();visitArrivedUntil=0;js('xj.companionReply',reply);if(panel&&!panel.isDestroyed())panel.webContents.send('reply',{text:reply.text});}
 function setSize(i){if(!sizes[i])return;const f=pet.getBounds(),s=display().workArea;stop();js('xjPet.interrupt',6);pet.setBounds(round(G.resized(f,sizes[i],s,footprint)));adopt();store.size=i;savePlace();host();rebuild();}
 function round(r){return Object.fromEntries(Object.entries(r).map(([k,v])=>[k,Math.round(v)]));}
@@ -107,7 +108,8 @@ app.whenReady().then(()=>{
   if(dragging){const dx=p.x-lastPointer.x,dy=p.y-lastPointer.y;origin.x+=dx;origin.y+=dy;place();if(dx||dy)js('xjPet.dragBy',dx,dy);}
   lastPointer=p;if(!canWander()&&!dragging)stop();
   if(trip){if(trip.area!==JSON.stringify(area())){stop();const f=pet.getBounds();pet.setBounds(round(G.resized(f,f,display().workArea,footprint)));adopt();}else{
-   const step=G.sample(trip,now());origin={x:step.x-shift.x,y:step.y-shift.y};place();if(step.done)stop(true);}}
+   const t=now(),step=G.sample(trip,t);origin={x:step.x-shift.x,y:step.y-shift.y};place();motion.update(pet.getBounds(),t);
+   if(motion.stalled(step.speed,t)){adopt();stop();}else if(step.done)stop(true);}}
   if(tickCount%3)return;host();if(hitPending||dragging)return;hitPending=true;const f=pet.getBounds(),intent=now()<pointerIntentUntil;
   js('xjPet.hit',p.x-f.x,p.y-f.y,intent).then(hit=>{hitPending=false;if(dragging||pet.isDestroyed())return;pet.setIgnoreMouseEvents(!hit,{forward:true});if(hit&&intent)stop();});
  },1000/60);

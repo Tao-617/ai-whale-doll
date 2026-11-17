@@ -54,6 +54,7 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
     var lively = true, menuOpen = false, strollChatter = true
     var footprint = CGRect(x:0,y:0,width:1,height:1)
     var roam: RoamPath?, roamID = 0
+    var roamMotion = RoamMotion()
     var visitSource: ObservedWindow?, visitToken: UUID?
     var visitCompletion: ((Bool) -> Void)?
     var hitPending = false
@@ -278,6 +279,7 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
         guard let path = RoamPath.make(from: start, area: area, target: target, now: ProcessInfo.processInfo.systemUptime,
                                        scale: window.frame.width / 360, running: running, id: roamID) else { return }
         window.setFrameOrigin(path.start); adopt()
+        roamMotion.reset(window.frame.origin,at:ProcessInfo.processInfo.systemUptime)
         lastDisplayArea = area; roam = path; sendHost()
     }
     func approachObservation(_ source: ObservedWindow, focus: CGPoint, done: @escaping (Bool) -> Void) -> Bool {
@@ -295,6 +297,7 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
                  now: ProcessInfo.processInfo.systemUptime, scale: self.window.frame.width / 360, running: true, id: self.roamID, intentional:true),
                  path.duration < 18 else { self.stopRoaming(arrived: true); return }
             self.window.setFrameOrigin(path.start); self.adopt()
+            self.roamMotion.reset(self.window.frame.origin,at:ProcessInfo.processInfo.systemUptime)
             self.lastDisplayArea = area; self.roam = path; self.sendHost()
         }
         return true
@@ -327,10 +330,10 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
         let frame=window.frame, visible=roamScreen().visibleFrame.intersection(frame)
         payload["viewport"]=["left":max(0,visible.minX-frame.minX),"right":min(frame.width,visible.maxX-frame.minX),"top":max(0,frame.maxY-visible.maxY),"bottom":min(frame.height,frame.maxY-visible.minY)]
         if let path = roam {
-            let s = path.sample(ProcessInfo.processInfo.systemUptime)
+            let now=ProcessInfo.processInfo.systemUptime, s = path.sample(now)
             payload["travel"] = ["id": path.id, "gait": path.gait, "dx": s.direction.x,
                                  "facing": abs(s.direction.y)>abs(s.direction.x)*2 ? (window.frame.midX < roamScreen().visibleFrame.midX ? -1:1) : (s.direction.x < 0 ? -1:1),
-                                 "dy": s.direction.y, "speed": s.speed, "kind": visitToken != nil ? "observation" : path.recovering ? "return":"stroll"]
+                                 "dy": s.direction.y, "speed": roamMotion.confirmedSpeed(s.speed,at:now), "kind": visitToken != nil ? "observation" : path.recovering ? "return":"stroll"]
         }
         let data = try! JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])
         return String(data: data, encoding: .utf8)!
@@ -394,7 +397,9 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
                 let sample = path.sample(ProcessInfo.processInfo.systemUptime)
                 // origin + shift remains the single source of truth for both autonomous movement and carrying.
                 origin = NSPoint(x: sample.point.x - shift.x, y: sample.point.y - shift.y); place()
-                if sample.done { stopRoaming(arrived: true) }
+                roamMotion.update(window.frame.origin,at:now)
+                if roamMotion.stalled(sample.speed,at:now) { adopt(); stopRoaming() }
+                else if sample.done { stopRoaming(arrived: true) }
             }
         }
         if dragging {
