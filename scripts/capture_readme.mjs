@@ -54,7 +54,7 @@ try{
  if(!clip){await pet.evaluate(()=>{xj.companionReply({speak:true,text:'你好呀，我是小鲸～',emotion:'happy',motion:'wave'});steps(40);});
  await pet.waitForTimeout(300);await pet.screenshot({path:out+'hello.png'});console.log('Captured hello.png');}
  if(!process.argv.includes('--stills')){
-  if(!clip||clip==='resting')await movie(pet,'resting',15,()=>{xjPet.host({active:false});xjPet.interrupt(0);},i=>{
+  if(!clip||clip==='resting')await movie(pet,'resting',15,()=>{xj.setLanguage('zh');xjPet.host({active:false,chatter:true});xjPet.interrupt(0);},i=>{
    if(i%75===0)xj.rest(['brood','rice','sleep'][Math.floor(i/75)]);steps(2);
   },400);
   if(!clip||clip==='walk-climb')await movie(pet,'walk-climb',8,()=>{

@@ -5,7 +5,7 @@ const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z),Q=()=>new THREE.Quaternion();
 const X=V(1,0,0),Z=V(0,0,1),UP=V(0,1,0),wp=b=>b.getWorldPosition(V());
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
 const FADE_IN=2.8;
-export const RESTS={brood:{zh:'蹲下抱头发呆',en:'Crouch and brood',face:'grumpy',duration:40},rice:{zh:'坐下吃白饭',en:'Sit and eat rice',face:'smile',duration:50},sleep:{zh:'躺下睡大觉',en:'Lie down and sleep',face:'asleep',duration:100}};
+export const RESTS={brood:{zh:'蹲下托腮发呆',en:'Rest cheeks in hands',face:'bored',duration:40},rice:{zh:'坐下吃白饭',en:'Sit and eat rice',face:'smile',duration:50},sleep:{zh:'躺下睡大觉',en:'Lie down and sleep',face:'asleep',duration:100}};
 export class Resting {
  constructor(B,mover,scene){
   this.B=B;this.mover=mover;this.weight=0;this.kind=null;this.hip=wp(B.Hips);this.feet={Left:wp(B.LeftFoot),Right:wp(B.RightFoot)};
@@ -38,7 +38,7 @@ export class Resting {
   B.Hips.position.copy(B.Hips.parent.worldToLocal(wp(B.Hips).lerp(hip,w)));B.Hips.updateMatrixWorld(true);
   if(kind!=='sleep'){
    for(const name of ['Spine','Spine1','Spine2'])turnWorld(B[name],X,(kind==='brood'?.12:.04)*w/3);
-   turnWorld(B.Head,X,(kind==='brood'?.10:.06)*w);
+   turnWorld(B.Head,X,(kind==='brood'?.035:.06)*w);
   }
   for(const [S,sx] of [['Left',1],['Right',-1]]){
    const goal=this.feet[S].clone().add(kind==='rice'?V(sx*.035,0,.16):kind==='sleep'?V(sx*.025,.065,.07):V(sx*.02,0,.035));
@@ -46,13 +46,12 @@ export class Resting {
   }
   const hands={};this.scoopPhase=smooth((Math.sin(age*1.7-.9)+1)/2);
   for(const [side,sx] of [['L',1],['R',-1]]){
-   let goal=this.anchor(kind==='brood'?'head':kind==='sleep'?'cheeks':'clasp',side);
-   if(kind==='brood')goal.add(V(0,.015,-.055));
+   let goal=this.anchor(kind==='brood'?'cheek_rest':kind==='sleep'?'cheeks':'clasp',side);
    if(kind==='rice'&&side==='R'){
     const low=this.anchor('clasp','L').add(V(-.07,-.045,.025));
     goal=low.lerp(this.anchor('mouth','R'),this.scoopPhase);
    }
-   hands[side]={target:goal,pole:V(sx,-.8,-.2),weight:w};
+   hands[side]={target:goal,pole:kind==='brood'?V(sx*.35,-1.5,.2):V(sx,-.8,-.2),weight:w};
   }
   this.mover.arms(dt,t,hands);
   if(kind==='sleep'){

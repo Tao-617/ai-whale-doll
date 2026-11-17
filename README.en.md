@@ -23,7 +23,9 @@ These clips were recorded from the project's test page using the real model and 
 
 ### Quiet resting · 0.6.2
 
-Walks are usually 2–4 minutes apart, sometimes longer while resting. At the bottom edge she can crouch and brood, sit and eat rice, or lie on her side and sleep. Choose a pose anytime under **Resting poses**. The bowl, rice, and spoon are procedural meshes; no extra model download is needed. Dragging or chatting interrupts rest.
+Walks are usually 2–4 minutes apart, sometimes longer while resting. At the bottom edge she can rest her cheeks in her hands, sit and eat rice, or lie on her side and sleep. Choose a pose anytime under **Resting poses**. The bowl, rice, and spoon are procedural meshes; no extra model download is needed. Dragging or chatting interrupts rest.
+
+The current source improves the cheek-rest pose and tail/skirt contact. Daydreaming can produce an occasional Chinese or English thought bubble: at most one per rest, at least a minute apart, controlled by **Occasional stroll and daydream chatter**. The 0.6.2 downloads remain the previously published build.
 
 Occasionally she performs an eight-second samba at the bottom edge, then rests again. Dances are at least eight minutes apart and never start during climbing or observation visits.
 
@@ -78,8 +80,8 @@ The Windows package is unsigned. Transparency, click-through behavior, the tray,
 These features need **no AI configuration or screen recording permission**:
 
 - **「自由活动」** (Free activity): occasionally walk and climb around screen edges, with longer quiet rests.
-- **Resting poses**: crouch and brood, sit and eat rice, or lie down and sleep.
-- **「跑动时偶尔闲聊」** (Occasional chatter while moving): local speech bubbles during walks.
+- **Resting poses**: rest her cheeks in her hands, sit and eat rice, or lie down and sleep.
+- **Occasional stroll and daydream chatter**: local speech bubbles during walks or while resting her cheeks in her hands.
 - Drag her body to move her. Pulling upward from below turns her upside down; pulling downward moves her normally. Spinning makes her dizzy.
 - **「大小：小／中／大」** (Size: small/medium/large): resizing anchors her back to an edge.
 
@@ -182,7 +184,7 @@ python3 scripts/serve.py
 
 Open <http://127.0.0.1:8812/>. On Windows, use `py -3 scripts/serve.py` if `python3` is unavailable. Keep the terminal open; press `Ctrl+C` to stop.
 
-The top-left “新动作预览” (New action previews) panel lets you try crouching, eating rice, sleeping, and samba. Click “停止预览 · 站起来” (Stop preview / stand up) to finish. Expression, material, and skeleton controls are also available; the top timeline supports pause, seeking, and frame stepping for the new resting poses too. `http://127.0.0.1:8812/?pet=1` previews the transparent pet page. System tray controls, desktop window movement, and observation require a desktop shell below.
+The top-left “新动作预览” (New action previews) panel lets you try resting her cheeks in her hands, eating rice, sleeping, and samba. Click “停止预览 · 站起来” (Stop preview / stand up) to finish. Expression, material, and skeleton controls are also available; the top timeline supports pause, seeking, and frame stepping for the new resting poses too. `http://127.0.0.1:8812/?pet=1` previews the transparent pet page. System tray controls, desktop window movement, and observation require a desktop shell below.
 
 ### Mac: build and launch
 

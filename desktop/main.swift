@@ -165,13 +165,13 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
         let b = menu.addItem(withTitle: L("壁纸（在图标后面）"), action: #selector(modeWall), keyEquivalent: ""); b.target = self; b.state = wallpaper ? .on : .off
         let life = menu.addItem(withTitle: L("自由活动（跑动和小动作）"), action: #selector(toggleLively), keyEquivalent: "")
         life.target = self; life.state = lively ? .on : .off
-        let chatter = menu.addItem(withTitle: L("跑动时偶尔闲聊"), action: #selector(toggleChatter), keyEquivalent: "")
+        let chatter = menu.addItem(withTitle: L("散步、发呆时偶尔闲聊"), action: #selector(toggleChatter), keyEquivalent: "")
         chatter.target = self; chatter.state = strollChatter ? .on : .off
         let approach = menu.addItem(withTitle: L("截图后主动靠近内容（说完回边缘）"), action: #selector(toggleApproach), keyEquivalent: "")
         approach.target = self; approach.state = companion.approachEnabled ? .on : .off
         menu.addItem(.separator())
         let rests=NSMenu(title:L("休息动作"))
-        for (id,key) in [("brood","蹲下抱头发呆"),("rice","坐下吃白饭"),("sleep","躺下睡大觉")] {
+        for (id,key) in [("brood","蹲下托腮发呆"),("rice","坐下吃白饭"),("sleep","躺下睡大觉")] {
             let item=rests.addItem(withTitle:L(key),action:#selector(restAction(_:)),keyEquivalent:"");item.target=self;item.representedObject=id
         }
         let restItem=menu.addItem(withTitle:L("休息动作"),action:nil,keyEquivalent:"");restItem.submenu=rests

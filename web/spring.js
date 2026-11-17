@@ -70,7 +70,9 @@ export class SpringChain {
     const {radius, axis} = this.opts;
     const ax = axis?.();
     for (let it = 0; it < 3; it++) for (const c of colliders) {
-      if (ax && c.a) {
+      // Limbs inside the dress push it outward. An external tail only separates a local contact;
+      // forcing the cloth to the far side of that tail flips the hem between two solutions.
+      if (ax && c.a && !c.contactOnly) {
         for (const f of [1, ...SAMPLES]) {
           const q = _s.copy(head).lerp(next, f);
           const out = outwardExit(q, ax.o, ax.up, c, radius * f);

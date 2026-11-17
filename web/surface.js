@@ -103,13 +103,15 @@ const MAX = 12;
 export class Pusher {
   constructor(mesh, groups, margin = 0.004) {
     this.mesh = mesh;
-    this.groups = groups.map(g => ({...g, caps: g.caps.slice(0, MAX)}));
+    this.groups = groups.map(g => ({...g, caps: g.caps.slice(0, MAX),
+      axisUpLocal: g.axis ? new THREE.Vector3(0, 1, 0).applyQuaternion(g.axis.getWorldQuaternion(new THREE.Quaternion()).invert()) : null}));
     this.margin = margin;
     this.uniforms = {uGround:{value:new THREE.Vector4(0,1,0,1e6)}};
     this.groups.forEach((g, n) => Object.assign(this.uniforms, {
       ['uA' + n]: {value: Array.from({length: MAX}, () => new THREE.Vector3())},
       ['uB' + n]: {value: Array.from({length: MAX}, () => new THREE.Vector3())},
       ['uR' + n]: {value: new Float32Array(MAX)},
+      ['uContact' + n]: {value: new Float32Array(MAX)},
       ['uN' + n]: {value: g.caps.length},
       ['uMax' + n]: {value: 0.03},
       ['uAxisO' + n]: {value: new THREE.Vector3()}, ['uAxisUp' + n]: {value: new THREE.Vector3(0, 1, 0)},
@@ -119,7 +121,7 @@ export class Pusher {
   patch(sh) {
     Object.assign(sh.uniforms, this.uniforms);
     const decl = this.groups.map((g, n) =>
-      `uniform vec3 uA${n}[${MAX}], uB${n}[${MAX}]; uniform float uR${n}[${MAX}], uMax${n}; uniform int uN${n}; uniform vec3 uAxisO${n}, uAxisUp${n};`).join('\n');
+      `uniform vec3 uA${n}[${MAX}], uB${n}[${MAX}]; uniform float uR${n}[${MAX}], uContact${n}[${MAX}], uMax${n}; uniform int uN${n}; uniform vec3 uAxisO${n}, uAxisUp${n};`).join('\n');
     const body = this.groups.map((g, n) => `
         if (abs(aPush - ${n + 1}.0) < 0.5) {
           ${g.axis && g.inward && g.wrap ? `
@@ -133,7 +135,7 @@ export class Pusher {
           }
           transformed = mix(pushUnder(transformed, uA${n}, uB${n}, uR${n}, uN${n}, uAxisO${n}, uAxisUp${n}, uMax${n}), transformed, aWrap.z);`
           : g.axis && g.inward ? `transformed = pushUnder(transformed, uA${n}, uB${n}, uR${n}, uN${n}, uAxisO${n}, uAxisUp${n}, uMax${n});`
-          : g.axis ? `transformed = pushAxis(transformed, uA${n}, uB${n}, uR${n}, uN${n}, uAxisO${n}, uAxisUp${n}, uMax${n});`
+          : g.axis ? `transformed = pushAxis(transformed, uA${n}, uB${n}, uR${n}, uContact${n}, uN${n}, uAxisO${n}, uAxisUp${n}, uMax${n});`
                    : `transformed = pushRadial(transformed, uA${n}, uB${n}, uR${n}, uN${n}, uMax${n});`}
         }`).join('');
     sh.vertexShader = sh.vertexShader
@@ -144,12 +146,13 @@ export class Pusher {
         ${decl}
         const float K_PUSH = 0.012;
         // out along the horizontal ray from the axis through p, past every capsule that ray crosses
-        vec3 pushAxis(vec3 p, vec3 A[${MAX}], vec3 B[${MAX}], float R[${MAX}], int N, vec3 o, vec3 up, float mx) {
+        vec3 pushAxis(vec3 p, vec3 A[${MAX}], vec3 B[${MAX}], float R[${MAX}], float C[${MAX}], int N, vec3 o, vec3 up, float mx) {
           vec3 O = o + up * dot(p - o, up), w = p - O;
           float sv = length(w);
           if (sv < 1e-5) return p;
           vec3 u = w / sv;
           float sOut = -1e9;
+          float contactPush = 0.0;
           for (int i = 0; i < ${MAX}; i++) {
             if (i >= N) break;
             vec3 d2 = B[i] - A[i], r = O - A[i];
@@ -159,11 +162,21 @@ export class Pusher {
             t = clamp(dot(O + u * s - A[i], d2) / max(e, 1e-9), 0.0, 1.0);
             s = dot(A[i] + d2 * t - O, u);
             float h = length(O + u * s - A[i] - d2 * t);
-            if (h < R[i]) sOut = max(sOut, s + sqrt(R[i] * R[i] - h * h));
+            if (h < R[i]) {
+              float end = s + sqrt(R[i] * R[i] - h * h);
+              if (C[i] > 0.5) {
+                float d = length(p - A[i] - d2 * clamp(dot(p - A[i], d2) / max(e, 1e-9), 0.0, 1.0));
+                float contact = 1.0 - smoothstep(R[i] - K_PUSH, R[i] + K_PUSH, d);
+                if (sv < end + 4.0 * K_PUSH)
+                  contactPush = max(contactPush, min(K_PUSH * log(1.0 + exp((sv - end) / K_PUSH)) + end - sv, mx) * contact);
+              } else {
+                sOut = max(sOut, end);
+              }
+            }
           }
           if (sOut > 0.0 && sv < sOut + 4.0 * K_PUSH)
-            return O + u * (sv + min(K_PUSH * log(1.0 + exp((sv - sOut) / K_PUSH)) + sOut - sv, mx));
-          return p;
+            contactPush = max(contactPush, min(K_PUSH * log(1.0 + exp((sv - sOut) / K_PUSH)) + sOut - sv, mx));
+          return p + u * contactPush;
         }
         // in along the same ray, to just under a capsule it crosses. The capsule is taken a little fatter (F_UNDER)
         // and the push eases off across that rim, so the cloth beside the limb dips with the cloth under it instead
@@ -228,11 +241,12 @@ export class Pusher {
         if (c.from) A.addScaledVector(d, c.from);
         A.applyMatrix4(inv); B.applyMatrix4(inv);
         U['uR' + n].value[i] = (c.radius + this.margin) / s;
+        U['uContact' + n].value[i] = c.contactOnly ? 1 : 0;
       });
       U['uMax' + n].value = (g.maxPush ?? 0.03) / s;
       if (g.axis) {
         g.axis.getWorldPosition(U['uAxisO' + n].value).applyMatrix4(inv);
-        U['uAxisUp' + n].value.set(0, 1, 0).transformDirection(inv);
+        U['uAxisUp' + n].value.copy(g.axisUpLocal).applyQuaternion(g.axis.getWorldQuaternion(new THREE.Quaternion())).transformDirection(inv);
       }
     });
   }

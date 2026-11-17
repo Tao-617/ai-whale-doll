@@ -37,6 +37,7 @@ const UP = V(0, 1, 0), RIGHT = V(1, 0, 0), FWD = V(0, 0, 1);
 export const ARM = {
   mouth: {face: [0.45, 1.05], pole: [1, -1.2, 0]},                 // hands over the mouth
   cheeks: {face: [1.45, 0.85], pole: [1, -1.5, 0]},                // fists on the cheeks
+  cheek_rest: {face: [1.3, 0.85], gap: 0.95, pole: [0.35, -1.5, 0.2]}, // cheeks supported by the hands, elbows tucked down
   chin: {face: [0.3, 1.38], pole: [1, -1, 0]},                     // thinking
   eyes: {face: [1.0, 0.25], gap: 0.9, pole: [1, -1, 0]},           // rubbing the eyes
   clasp: {face: [0.3, 1.45], gap: 1.9, pole: [1, -1.2, 0]},        // hands together under the chin

@@ -17,6 +17,9 @@
   #bubble.interactive.show { pointer-events: auto; cursor: pointer; }
   #bubble.interactive::after { content: attr(data-reply); display: block; font-size: 10px; color: #6a7c9d; margin-top: 3px; }
   #bubble:focus-visible { outline: 2px solid #6d94e0; outline-offset: 2px; }
+  #bubble.thinking::before, #bubble.thinking::after { content: ''; position: absolute; background: #fff; border-radius: 50%; }
+  #bubble.thinking::before { width: 10px; height: 8px; bottom: -11px; left: 48%; }
+  #bubble.thinking::after { width: 5px; height: 5px; bottom: -20px; left: 45%; }
   #bar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
     background: rgba(255, 255, 255, .7); backdrop-filter: blur(8px); padding: 8px 10px; border-radius: 14px; }
   #bar button, #bar select { font: inherit; font-size: 14px; border: 0; border-radius: 10px; padding: 7px 12px; background: #fff; color: #1d2a52; cursor: pointer; }
@@ -56,7 +59,7 @@ html.pet #bubble { top: 1%; font-size: 13px; padding: 8px 12px; width: max-conte
 <div id="hint">拖动转视角 · 点她的头、耳朵、尾巴、手试试</div>
 <section id="previews" aria-label="新动作预览">
   <strong>新动作预览</strong>
-  <button data-preview="brood" aria-pressed="false" disabled>蹲下抱头发呆</button>
+  <button data-preview="brood" aria-pressed="false" disabled>蹲下托腮发呆</button>
   <button data-preview="rice" aria-pressed="false" disabled>坐下吃白饭</button>
   <button data-preview="sleep" aria-pressed="false" disabled>躺下睡大觉</button>
   <button data-preview="samba" aria-pressed="false" disabled>跳桑巴舞</button>

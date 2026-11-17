@@ -378,6 +378,7 @@ export const EXPRESSIONS = {
   smug: {lidFlat: 0.5, lowerLid: 0.6, tilt: -0.2, mSmile: 0.5, mCat: 0.3, blush: 0.4, headPitch: -6 * DEG, headRoll: 5 * DEG},
   sulky: {lidFlat: 0.4, tilt: 0.3, mPucker: 0.8, mSmile: -0.6, blush: 0.6, headYaw: 15 * DEG, ahogeDroop: 0.3, gaze: [0.6, 0]},
   grumpy: {lidFlat: 0.7, lidSlant: 0.5, tilt: -0.6, raise: -0.3, mSmile: -0.8, earLift: -0.3, ahogeDroop: 0.4},
+  bored: {open: 0.62, lidFlat: 0.35, raise: -0.18, tilt: 0.08, mSmile: -0.22, earLift: -0.3, ahogeDroop: 0.45},
   angry: {open: 1.05, lidSlant: 0.9, tilt: -1, raise: -0.4, mShout: 0.8, mOpen: 0.7, blush: 0.6, headPitch: 6 * DEG, earLift: 0.5},
   surprised: {open: 1.2, raise: 0.8, mRound: 1, mOpen: 0.35, earLift: 0.8, headPitch: -6 * DEG},
   scared: {open: 1.15, pupil: 0.6, tilt: 0.8, raise: 0.5, mWave: 0.8, mOpen: 0.4, blush: 0.3, earLift: -0.6, headPitch: 8 * DEG},

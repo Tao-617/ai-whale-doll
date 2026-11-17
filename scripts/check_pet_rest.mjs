@@ -8,15 +8,36 @@ await p.evaluate(()=>{xj.state.manual=true;window.step=n=>{for(let i=0;i<n;i++)x
 for(const width of [260,360,520]){await p.setViewportSize({width,height:Math.round(width*4/3)});await p.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
  for(const id of ['brood','rice','sleep']){
   const result=await p.evaluate(id=>{xjPet.interrupt(0);xj.rest(id);step(210);const B=xj.mover.B,wp=b=>b.getWorldPosition(b.position.clone()),knees=['Left','Right'].map(S=>{const k=wp(B[S+'Leg']);return Math.PI-wp(B[S+'UpLeg']).sub(k).angleTo(wp(B[S+'Foot']).sub(k));});
+   const bones=xj.springs.filter(s=>/^(Skirt|Tail)/.test(s.names[0])).flatMap(s=>s.joints.map(j=>j.bone));
+   let previous=bones.map(b=>b.quaternion.clone()),maxStep=0,worstBone='';
+   for(let i=0;i<240;i++){xj.tick(1/30,false);bones.forEach((b,j)=>{const degrees=b.quaternion.angleTo(previous[j])*180/Math.PI;if(degrees>maxStep){maxStep=degrees;worstBone=b.name;}previous[j].copy(b.quaternion);});}xj.render();
    const gl=xj.renderer.getContext(),w=gl.drawingBufferWidth,h=gl.drawingBufferHeight,a=new Uint8Array(w*h*4);gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,a);let left=w,right=0,top=h,bottom=0;
    for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(a[(y*w+x)*4+3]>24){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,h-1-y);bottom=Math.max(bottom,h-1-y);}
-   return{id,weight:xj.state.restWeight,knees,eyes:xj.face.value('open'),bounds:{left:left/w,right:right/w,top:top/h,bottom:bottom/h},finite:Object.values(B).every(b=>b.quaternion.toArray().every(Number.isFinite))};},id);
+   return{id,weight:xj.state.restWeight,knees,eyes:xj.face.value('open'),maxStep,worstBone,bounds:{left:left/w,right:right/w,top:top/h,bottom:bottom/h},finite:Object.values(B).every(b=>b.quaternion.toArray().every(Number.isFinite))};},id);
   console.log(JSON.stringify({width,...result}));await p.screenshot({path:out+id+'-'+width+'.png',omitBackground:true});assert(result.finite&&result.weight>.98);assert(result.bounds.left>.005&&result.bounds.right<.995&&result.bounds.bottom<.995,'pose is clipped by the canvas');
   if(id==='sleep')assert(result.eyes<.02);else assert(result.knees.every(k=>k>.8));
+  assert(result.maxStep<5,`${id}: ${result.worstBone} jumped ${result.maxStep} degrees in a resting frame`);
   poses.push({width,...result});await p.screenshot({path:out+id+'-'+width+'.png',omitBackground:true});
   await p.evaluate(()=>{xjPet.interrupt(0);step(90);});assert(await p.evaluate(()=>xj.state.restWeight===0));
  }
 }
+const chatter=await p.evaluate(()=>{
+ const bubble=document.querySelector('#bubble');
+ const start=(host={})=>{xj.stopPreview();step(60);xj.state.nextRestChatter=0;xjPet.host({active:false,parked:true,floor:true,chatter:true,...host});xj.rest('brood');};
+ xj.setLanguage('en');start();step(150);
+ const shown=bubble.classList.contains('show')&&bubble.classList.contains('thinking')&&!/[\u4e00-\u9fff]/.test(bubble.textContent)&&bubble.textContent.length>0;
+ const keepsPose=xj.state.restPreview?.id==='brood'&&xj.state.restWeight>.98&&xj.state.bubbleBlocking===false;
+ const firstUntil=xj.state.bubbleUntil,cooldown=xj.state.nextRestChatter-xj.state.time;step(300);
+ const once=xj.state.bubbleUntil===firstUntil;
+ xj.stopPreview();step(1);const stopClears=!bubble.classList.contains('show');
+ start({chatter:false});step(150);const muted=!bubble.classList.contains('show')&&!xj.state.restPreview.chatted;
+ start({visiting:true});step(150);const visitingQuiet=!bubble.classList.contains('show');
+ start();xj.seek(10);const seekingQuiet=!bubble.classList.contains('show');xj.pause(false);step(1);
+ xj.companionReply({speak:true,text:'Hello from a real reply.',emotion:'happy',motion:''});step(1);
+ const replyPreserved=bubble.classList.contains('show')&&bubble.textContent==='Hello from a real reply.'&&!bubble.classList.contains('thinking')&&!xj.state.restPreview;
+ xj.state.bubbleUntil=0;bubble.classList.remove('show');xj.setLanguage('zh');xjPet.host({active:false,parked:true,floor:true,chatter:false});step(90);
+ return{shown,keepsPose,once,cooldown,stopClears,muted,visitingQuiet,seekingQuiet,replyPreserved};
+});for(const [key,value]of Object.entries(chatter))assert(key==='cooldown'?value>=59:value,key);
 const dance=await p.evaluate(()=>{
  const l=xj.state.petLife;
  const attempt=(host={})=>{
@@ -44,5 +65,5 @@ const schedule=await p.evaluate(async()=>{
   life.host({active:true,parked:true,floor:true,travel:trip});life.update(.5,state.time);}
  Math.random=random;return{trips,rests:[...rests]};
 });assert(schedule.trips.length>=1&&schedule.trips.length<=4);assert(schedule.trips[0]>=90);assert(schedule.rests.length>=2);for(let i=1;i<schedule.trips.length;i++)assert(schedule.trips[i]-schedule.trips[i-1]>=120);
-assert.deepEqual(errors,[]);await writeFile(out+'verified.json',JSON.stringify({poses,dance,schedule,errors},null,2));console.log(JSON.stringify({poses,dance,schedule,errors}));
+assert.deepEqual(errors,[]);await writeFile(out+'verified.json',JSON.stringify({poses,chatter,dance,schedule,errors},null,2));console.log(JSON.stringify({poses,chatter,dance,schedule,errors}));
 }finally{await b.close()}

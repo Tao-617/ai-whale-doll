@@ -141,7 +141,13 @@ new GLTFLoader().load(CFG.file, gltf => {
   // the dress is stiff: firm chains held together as a ring (Hoop), swinging little
   // it may still lift far (up to ~70°) when a leg pushes it; colliders push it outward from the body's axis
   const hipsAxis = {o: new THREE.Vector3(), up: W(0, 1, 0)};
-  const axis = () => { (B.mixamorigHips ?? B.Hips).getWorldPosition(hipsAxis.o); return hipsAxis; };
+  const hipsBone = B.mixamorigHips ?? B.Hips;
+  const hipsUpLocal = UP.clone().applyQuaternion(hipsBone.getWorldQuaternion(new THREE.Quaternion()).invert());
+  const axis = () => {
+    hipsBone.getWorldPosition(hipsAxis.o);
+    hipsAxis.up.copy(hipsUpLocal).applyQuaternion(hipsBone.getWorldQuaternion(new THREE.Quaternion()));
+    return hipsAxis;
+  };
   for (const s of skirtChains) chain([s + '1', s + '2'], {stiffness: 5, drag: 0.75, gravity: W(0, -0.25, 0), radius: 0.015, maxAngle: 1.2, axis});
   if (B.SkirtA1) hoop = new Hoop(springs.filter(s => s.names[0].startsWith('Skirt')), 0.7);
   // limbs as capsules (v2): hair parts around the arms, the skirt is pushed by the legs and hands, the tail by the legs.
@@ -168,14 +174,14 @@ new GLTFLoader().load(CFG.file, gltf => {
     const legs = [...body.thighs, ...body.shins];
     // the tail as capsules too: it lifts over the legs in a run (yieldTail) and the hair hanging down the back parts
     // round it instead of running through it
-    if (B.Tail4) body.tail = [1, 2, 3].map(i => ({a: B['Tail' + i], b: B['Tail' + (i + 1)], radius: 0.032 - 0.004 * i, from: 0, ext: 0}));
+    if (B.Tail4) body.tail = [1, 2, 3].map(i => ({a: B['Tail' + i], b: B['Tail' + (i + 1)], radius: 0.032 - 0.004 * i, from: 0, ext: 0, contactOnly: true}));
     else body.tail = [];
     // Rules, from what each soft part hangs on:
     //   hair, side locks, ears, ahoge (on the head): the chest and arms push them, away from each capsule
     //   skirt and apron (on the hips): the legs push them, outward from the body's axis (the hips sphere and the hands
     //     sit at the dress and would only lift it)
     //   tail (on the hips): the legs
-    const toColliders = list => list.map(c => capsuleCollider(c.a, c.b, c.radius, c.ext, c.from));
+    const toColliders = list => list.map(c => Object.assign(capsuleCollider(c.a, c.b, c.radius, c.ext, c.from), {contactOnly: c.contactOnly}));
     const rules = [
       {test: /^(Hair|Lock|Ear|Ahoge)/, colliders: colliders.concat(toColliders([...body.chest, ...body.arms, ...body.tail]))},
       {test: /^Skirt/, colliders: toColliders([...legs, ...body.tail])},      // the tail comes out under the hem and lifts it
@@ -191,27 +197,32 @@ new GLTFLoader().load(CFG.file, gltf => {
     // point whose underside is that height.
     const skirts = springs.filter(s => s.names[0].startsWith('Skirt')), tails = springs.filter(s => s.names[0].startsWith('Tail'));
     if (skirts.length > 2 && tails.length) {
-      const tips = skirts.map(s => s.joints[s.joints.length - 1].tail), o = new THREE.Vector3(), c = new THREE.Vector3(), BIG = 1;
-      // the hem under a point: [height, radius] of the skirt tip nearest in direction from the hips' axis
+      const tips = skirts.map(s => s.joints[s.joints.length - 1].tail), c = new THREE.Vector3(), BIG = 1;
+      // Read the hem in the hips' frame, including when she lies on her side. Blend neighbouring panels so
+      // crossing a panel boundary cannot teleport the tail's contact plane.
       const hemAt = p => {
-        P('Hips').getWorldPosition(o);
-        let best = -2, k = 0;
-        const px = p.x - o.x, pz = p.z - o.z, pl = Math.hypot(px, pz) || 1e-9;
-        tips.forEach((t, i) => { const tx = t.x - o.x, tz = t.z - o.z, d = (px * tx + pz * tz) / (pl * (Math.hypot(tx, tz) || 1e-9)); if (d > best) { best = d; k = i; } });
-        return [tips[k].y, Math.hypot(tips[k].x - o.x, tips[k].z - o.z), pl];
+        const {o, up} = axis(), v = p.clone().sub(o), height = v.dot(up);
+        v.addScaledVector(up, -height); const pl = v.length(); v.divideScalar(pl || 1);
+        let weight = 0, y = 0, r = 0;
+        for (const tip of tips) {
+          const d = tip.clone().sub(o), h = d.dot(up); d.addScaledVector(up, -h);
+          const radius = d.length(), w = Math.max(0, v.dot(d.divideScalar(radius || 1))) ** 12;
+          weight += w; y += w * h; r += w * radius;
+        }
+        return [y / (weight || 1), r / (weight || 1), pl, height];
       };
       let allow = -Infinity;
       const q = new THREE.Vector3();
       for (const t of tails) for (const j of t.joints) {
         const head = j.bone.getWorldPosition(new THREE.Vector3());
-        for (let f = 0; f <= 1; f += 0.125) { q.copy(head).lerp(j.tail, f); const [y, r, pl] = hemAt(q); if (pl > 0.8 * r) allow = Math.max(allow, q.y - y); }
+        for (let f = 0; f <= 1; f += 0.125) { q.copy(head).lerp(j.tail, f); const [y, r, pl, height] = hemAt(q); if (pl > 0.8 * r) allow = Math.max(allow, height - y); }
       }
       state.hemAllow = allow = (allow > -1 ? allow : -0.02) + 0.015;
       const under = {radius: BIG, closest(p) {
-        const [y, r, pl] = hemAt(p);
+        const [y, r, pl, height] = hemAt(p);
         // only beyond the hem's radius, eased in over its last fifth
-        const k = THREE.MathUtils.clamp((pl / r - 0.8) / 0.2, 0, 1);
-        return c.set(p.x, k > 0 ? y + allow + (1 - k) * 0.1 + BIG : p.y + 2 * BIG + 1, p.z);
+        const k = THREE.MathUtils.clamp((pl / Math.max(r, 1e-6) - 0.8) / 0.2, 0, 1);
+        return c.copy(p).addScaledVector(hipsAxis.up, k > 0 ? y + allow + (1 - k) * 0.1 + BIG - height : 2 * BIG + 1);
       }};
       for (const t of tails) t.colliders = t.colliders.concat([under]);
     }
@@ -560,6 +571,7 @@ function tick(step = null, draw = true) {
     }
     climber?.update(dt,t,state,camera,canvas);
     resting?.update(dt,t,state,face);
+    restChatter(t);
     // Turn the whole posed skeleton after local gestures/IK, so their surface constraints stay in the same frame.
     // The bones reset next frame; the model root remains exclusively owned by the grab/pendulum physics.
     if (state.petHeading) {
@@ -752,12 +764,14 @@ function poke(point) {
 
 const bubble = document.querySelector('#bubble');
 let bubbleTimer;
-function say(text, interactive = false, {whileMoving = false} = {}) {
-  if (!whileMoving) pet?.interrupt(5);
+function say(text, interactive = false, {whileMoving = false, whileResting = false} = {}) {
+  if (!whileMoving && !whileResting) pet?.interrupt(5);
+  state.restBubbleDrive = null;
   const content = String(t(text ?? '')).slice(0, 280);
   bubble.textContent = content;
   const canReply = interactive && !!window.webkit?.messageHandlers?.pet;
   bubble.classList.toggle('interactive', canReply);
+  bubble.classList.toggle('thinking', whileResting);
   bubble.setAttribute('role', canReply ? 'button' : 'status');
   bubble.tabIndex = canReply ? 0 : -1;
   bubble.title = canReply ? t('点击回复小鲸') : '';
@@ -765,8 +779,28 @@ function say(text, interactive = false, {whileMoving = false} = {}) {
   clearTimeout(bubbleTimer);
   const duration = Math.min(18000, Math.max(2800, [...content].length * (getLanguage()==='en'?65:230)));
   state.bubbleUntil = state.time + duration / 1000;
-  state.bubbleBlocking = !whileMoving;
+  state.bubbleBlocking = !whileMoving && !whileResting;
   bubbleTimer = setTimeout(() => bubble.classList.remove('show'), duration);
+}
+const REST_LINES = [
+  '你忙你的，我在这里发会儿呆。', '脑袋空空，肚子也有一点空。',
+  '今天的发呆任务，完成得很认真。', '想到了！……好像又忘了。', '托着脸，等一个好玩的念头。',
+];
+function restChatter(now) {
+  const drive = state.restPreview ?? state.petRest;
+  if (state.restBubbleDrive && state.restBubbleDrive !== drive) {
+    clearTimeout(bubbleTimer); bubble.classList.remove('show', 'thinking');
+    state.bubbleUntil = 0; state.restBubbleDrive = null;
+  }
+  if (drive?.id !== 'brood' || drive.chatted || state.paused || now - drive.start < 4 ||
+      now < (state.nextRestChatter ?? 0) || now < (state.bubbleUntil ?? 0) || now < (state.petAttendUntil ?? 0) ||
+      state.petHeld || state.petGrab || state.petRoaming || face?.reaction ||
+      (state.pet && (!state.petLife?.chatter || state.petLife?.visiting))) return;
+  const choices = REST_LINES.filter(line => line !== state.lastRestLine);
+  const line = choices[Math.floor(Math.random() * choices.length)];
+  drive.chatted = true; state.lastRestLine = line; state.nextRestChatter = now + 60 + Math.random() * 30;
+  say(line, false, {whileResting: true}); state.restBubbleDrive = drive;
+  face?.talk(1.8, now);
 }
 function replyToBubble(e) {
   if (!bubble.classList.contains('interactive')) return;
