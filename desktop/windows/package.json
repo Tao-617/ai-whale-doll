@@ -1,0 +1,25 @@
+{
+  "name": "xiaojing-desktop",
+  "version": "0.6.0",
+  "private": true,
+  "description": "Xiaojing desktop companion",
+  "author": "Xiaojing project",
+  "license": "UNLICENSED",
+  "main": "main.cjs",
+  "scripts": {"test": "node --test test/*.test.cjs", "pack": "electron-builder --win portable --x64"},
+  "devDependencies": {"electron": "45.3.3", "electron-builder": "26.18.1"},
+  "build": {
+    "appId": "io.opengrove.xiaojing-pet.windows",
+    "productName": "Xiaojing",
+    "directories": {"output": "../dist/windows"},
+    "files": ["*.cjs", "*.html", "*.js", "assets/**", "package.json"],
+    "extraResources": [
+      {"from": "../../web", "to": "web", "filter": ["**/*", "!assets/xiaojing.glb", "!assets/xiaojing-v2r.glb"]},
+      {"from": "../../companion", "to": "companion", "filter": ["model.cjs", "system.txt"]},
+      {"from": "native", "to": "native", "filter": ["*.ps1"]}
+    ],
+    "win": {"target": "portable", "signAndEditExecutable": false},
+    "portable": {"artifactName": "Xiaojing-0.6.0-Windows-x64.exe"},
+    "npmRebuild": false
+  }
+}

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小鲸</title>
+<style>
+  html, body { margin: 0; height: 100%; font-family: system-ui, -apple-system, "PingFang SC", sans-serif; }
+  body { background: radial-gradient(ellipse at 50% 35%, #f4f7ff 0%, #d9e3f7 55%, #b9c8e8 100%); color: #1d2a52; overflow: hidden; }
+  #stage { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; font-size: 15px; opacity: .7; pointer-events: none; }
+  body.ready #loading { display: none; }
+  #bubble { position: fixed; left: 50%; top: 13%; transform: translate(-50%, 8px); background: #fff; padding: 10px 16px;
+    border-radius: 16px; box-shadow: 0 6px 20px rgba(30, 50, 110, .15); font-size: 16px; opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; }
+  #bubble.show { opacity: 1; transform: translate(-50%, 0); }
+  #bubble { box-sizing: border-box; max-width: min(420px, calc(100vw - 24px)); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; z-index: 5; }
+  #bubble.interactive.show { pointer-events: auto; cursor: pointer; }
+  #bubble.interactive::after { content: '点击回复'; display: block; font-size: 10px; color: #6a7c9d; margin-top: 3px; }
+  #bubble:focus-visible { outline: 2px solid #6d94e0; outline-offset: 2px; }
+  #bar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+    background: rgba(255, 255, 255, .7); backdrop-filter: blur(8px); padding: 8px 10px; border-radius: 14px; }
+  #bar button, #bar select { font: inherit; font-size: 14px; border: 0; border-radius: 10px; padding: 7px 12px; background: #fff; color: #1d2a52; cursor: pointer; }
+  #bar button:hover { background: #e7eeff; }
+  #bar label { font-size: 14px; display: flex; align-items: center; gap: 4px; padding: 0 4px; }
+  #timeline { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
+    width: min(680px, calc(100vw - 28px)); box-sizing: border-box; background: rgba(255, 255, 255, .7); backdrop-filter: blur(8px);
+    padding: 6px 10px; border-radius: 14px; font-size: 13px; }
+  #timeline button { font: inherit; font-size: 14px; border: 0; border-radius: 9px; width: 32px; height: 30px; background: #fff; color: #1d2a52; cursor: pointer; }
+  #timeline button:hover { background: #e7eeff; }
+  #timeline input { flex: 1; min-width: 80px; accent-color: #3b6fd8; }
+  #tl-name { max-width: 9em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #tl-time { font-variant-numeric: tabular-nums; min-width: 8.5em; text-align: right; opacity: .8; }
+  #timeline.idle input, #timeline.idle #tl-prev, #timeline.idle #tl-next { opacity: .35; pointer-events: none; }
+  #hint { position: fixed; left: 14px; top: 58px; font-size: 13px; opacity: .6; }
+#legend{display:none;position:fixed;right:14px;top:58px;gap:10px;flex-wrap:wrap;justify-content:flex-end;max-width:46vw;font:12px system-ui;color:#dfe6f5;pointer-events:none}
+#legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+html.pet, html.pet body { background: transparent; }
+html.pet #bar, html.pet #hint, html.pet #timeline, html.pet #legend, html.pet #loading { display: none !important; }
+html.pet #bubble { top: 1%; font-size: 13px; padding: 8px 12px; width: max-content; max-width: calc(100vw - 20px); }
+</style>
+<script type="importmap">{"imports": {"three": "./vendor/three.module.min.js"}}</script>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="loading">小鲸正在赶来…</div>
+<div id="bubble"></div>
+<div id="hint">拖动转视角 · 点她的头、耳朵、尾巴、手试试</div>
+<div id="timeline" class="idle">
+  <button id="tl-play" title="暂停 / 播放（空格）">⏸</button>
+  <button id="tl-prev" title="上一帧（←）">◀</button>
+  <button id="tl-next" title="下一帧（→）">▶</button>
+  <span id="tl-name">选一个动作</span>
+  <input id="tl-bar" type="range" min="0" max="1000" value="0">
+  <span id="tl-time"></span>
+</div>
+<div id="bar">
+  <button data-act="wave">挥手</button>
+  <button data-act="hop">跳一下</button>
+  <button data-act="nod">点头</button>
+  <button data-act="shake">摇头</button>
+  <button data-act="wag">摇尾巴</button>
+  <button data-face="happy">开心</button>
+  <button data-face="surprised">惊讶</button>
+  <button data-face="teary">难过</button>
+  <button data-face="pout">嘟嘴</button>
+  <select id="expr"><option value="neutral">表情…</option></select>
+  <button data-face="sleepy">困</button>
+  <button data-face="talk">说话</button>
+  <select id="move"><option value="">小动作…</option></select>
+  <select id="clip"><option value="">动作库：无</option></select>
+  <select id="style"><option value="toon">卡通光</option><option value="flat">平涂</option></select>
+  <label><input type="checkbox" id="outline">描边</label>
+  <label><input type="checkbox" id="split">骨骼</label>
+</div>
+<div id="legend"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

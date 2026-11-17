@@ -1,0 +1,41 @@
+# Public repository allowlist. Local production notes, reference downloads,
+# source art, private reports and workspace instructions stay on this computer.
+/*
+!/.gitignore
+!/README.md
+!/THIRD_PARTY_NOTICES.md
+!/web/
+!/companion/
+!/desktop/
+!/scripts/
+!/tests/
+!/docs/
+
+/desktop/*
+!/desktop/*.swift
+!/desktop/build.sh
+!/desktop/package-mac.sh
+!/desktop/windows/
+/desktop/windows/node_modules/
+
+/scripts/*
+!/scripts/serve.py
+
+/docs/*
+!/docs/install-0.6.txt
+!/docs/release-v0.6.0.md
+
+# Never commit local configuration, credentials, runtime state or build output.
+**/.env
+**/.env.*
+**/*.local.json
+**/settings.json
+**/credentials.json
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/.DS_Store
+**/__pycache__/
+**/*.pyc
+**/node_modules/
