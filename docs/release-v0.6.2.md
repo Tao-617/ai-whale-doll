@@ -22,6 +22,6 @@
 
 [中文使用说明](https://github.com/Tao-617/ai-whale-doll/blob/main/README.md) · [English setup guide](https://github.com/Tao-617/ai-whale-doll/blob/main/README.en.md)
 
-Mac 包未做 Apple 公证；Windows 包未正式签名，在 Mac 上交叉构建，尚未在真实 Windows 桌面验收。AI 需要配置自己的模型服务，观察每次启动默认暂停。本次测试未调用付费模型。
+Mac 包未做 Apple 公证；Windows 包未正式签名，尚未在真实 Windows 桌面验收。AI 需要配置自己的模型服务，观察每次启动默认暂停。本次测试未调用付费模型。
 
-The Mac package is not Apple-notarized. The Windows package is unsigned and cross-built on Mac; real Windows desktop testing is still pending. AI requires your own model service, and observation starts paused on each launch. This release was tested without paid model calls.
+The Mac package is not Apple-notarized. The Windows package is unsigned; real Windows desktop testing is still pending. AI requires your own model service, and observation starts paused on each launch. This release was tested without paid model calls.

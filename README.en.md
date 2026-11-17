@@ -8,7 +8,7 @@ A 3D desktop companion who walks and climbs around the edges of your screen, pla
 
 **[Download](https://github.com/Tao-617/ai-whale-doll/releases/tag/v0.6.2)** · [Install and launch](#install-and-launch) · [Configure AI chat](#configure-ai-chat) · [Observation and movement](#observation-and-movement) · [Run from source](#run-from-source)
 
-Current release: **0.6.2 preview**. The Mac app has been launched locally. The Windows package is cross-built on Mac and still needs testing on a real Windows desktop. Packages are not Apple-notarized or commercially code-signed for Windows, so first-launch security prompts may appear.
+Current release: **0.6.2 preview**. The Mac app has been launched locally. The Windows version still needs testing on a real Windows desktop. Packages are not Apple-notarized or commercially code-signed for Windows, so first-launch security prompts may appear.
 
 Choose **Language / 语言 → English** in the 🐳 menu or system tray. The first launch follows your system language; later launches remember your choice. Menus, chat controls, built-in chatter, and AI replies follow this setting. Chinese labels below are included as references.
 
