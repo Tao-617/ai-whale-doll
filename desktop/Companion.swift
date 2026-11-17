@@ -32,7 +32,8 @@ final class Companion {
     var ready = false
     private var screenAwake = true, sessionActive = true, screenLocked = false
     var awake: Bool { screenAwake && sessionActive && !screenLocked }
-    var status = "观察已暂停"
+    private var statusKey = "观察已暂停", statusArgs: [String] = []
+    var status:String { L10n.text(statusKey,statusArgs) }
     var allowed: Set<String> = Set(UserDefaults.standard.stringArray(forKey: "observeApps") ?? [])
     private(set) var busy = false {
         didSet { chatEvent?("state", busy ? "小鲸正在想…" : "") }
@@ -72,9 +73,9 @@ final class Companion {
         timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.tick() }
     }
 
-    func setStatus(_ value: String) {
-        guard status != value else { return }
-        status = value; changed?()
+    func setStatus(_ value: String, _ args:String...) {
+        guard statusKey != value || statusArgs != args else { return }
+        statusKey = value; statusArgs=args; changed?()
     }
     func permitted(_ bundle: String) -> Bool {
         allowed.contains(bundle) && !forbidden.contains(bundle) && bundle != Bundle.main.bundleIdentifier
@@ -114,6 +115,9 @@ final class Companion {
     func pause() {
         enabled = false; cancel(); context = ""; history = []
         setStatus("观察已暂停"); changed?()
+    }
+    func languageChanged() {
+        cancel();setStatus(enabled ? "等待你停下来，再看一眼":"观察已暂停");changed?()
     }
     func availabilityChanged() {
         stableSince = Date()
@@ -171,7 +175,7 @@ final class Companion {
             interacting: interacting(), idle: idleSeconds(), stable: now.timeIntervalSince(stableSince),
             sinceRequest: now.timeIntervalSince(lastRequest), manual: manual) else { return }
         epoch += 1; busy = true; lastRequest = now; let generation = epoch
-        setStatus("正在看一眼「\(window.app)」")
+        setStatus("正在看一眼「{0}」",window.app)
         DispatchQueue.main.asyncAfter(deadline: .now() + 20) { [weak self] in
             guard let self = self, self.epoch == generation, self.busy, self.worker == nil else { return }
             self.cancel(); self.setStatus("截图超时，稍后再看")
@@ -239,12 +243,12 @@ final class Companion {
     private func fail(_ reply: [String: Any]) {
         let code = reply["error"] as? String ?? "worker_failed"
         pause()
-        let message = "连接未完成（\(code)），已暂停；不会自动重试"
-        setStatus(message); chatEvent?("notice", message)
+        setStatus("连接未完成（{0}），已暂停；不会自动重试",code); chatEvent?("notice", status)
     }
     private func run(_ payload: [String: Any], generation: Int, done: @escaping ([String: Any]) -> Void) {
         guard let resource = Bundle.main.resourceURL else { done(["ok":false,"error":"local_payload_error"]); return }
         var request = payload
+        request["language"]=L10n.language
         let standalone = modelConfig?()
         if let standalone = standalone { request["config"]=standalone }
         guard let data = try? JSONSerialization.data(withJSONObject: request) else {

@@ -11,6 +11,7 @@
 // spring bones feel it). Shaken hard she squeezes her eyes shut; let go, she drops, lands with a dip and complains.
 import * as THREE from 'three';
 import {PetLife} from './life.js';
+import {setLanguage,getLanguage} from './i18n.js';
 
 const RIGHT = new THREE.Vector3(1, 0, 0), FWD = new THREE.Vector3(0, 0, 1);
 const clamp = THREE.MathUtils.clamp, pick = a => a[Math.floor(Math.random() * a.length)];
@@ -58,6 +59,23 @@ export function setupPet(x) {
     return drawn;
   }
   const base = camera.position.clone(), baseT = x.controls.target.clone();
+  let restPoints=null,footprintSize='';
+  function reportFootprint(){
+    const size=canvas.clientWidth+':'+canvas.clientHeight;
+    if(!restPoints||size===footprintSize||!canvas.clientHeight)return;
+    const cam=camera.clone();cam.position.copy(base);cam.lookAt(baseT);cam.updateMatrixWorld(true);cam.updateProjectionMatrix();
+    const bounds={left:1,top:1,right:0,bottom:0};
+    for(const point of restPoints){const v=point.clone().project(cam),u=(v.x+1)/2,y=(1-v.y)/2;
+      bounds.left=Math.min(bounds.left,u);bounds.right=Math.max(bounds.right,u);bounds.top=Math.min(bounds.top,y);bounds.bottom=Math.max(bounds.bottom,y);}
+    const x0=clamp(bounds.left,0,.45),y0=clamp(bounds.top,0,.45),x1=clamp(bounds.right,.55,1),y1=clamp(bounds.bottom,.55,1);
+    footprintSize=size;post({type:'footprint',x:x0,y:y0,width:x1-x0,height:y1-y0});
+  }
+  function host(data){
+    if(data.language&&getLanguage()!==data.language){setLanguage(data.language);state.bubbleUntil=0;document.querySelector('#bubble')?.classList.remove('show');}
+    if(data.viewport){const v=data.viewport,b=document.querySelector('#bubble'),width=Math.max(80,v.right-v.left-16);
+      b.style.left=(v.left+v.right)/2+'px';b.style.top=(v.top+8)+'px';b.style.maxWidth=Math.min(420,width)+'px';}
+    life.host(data);
+  }
   function begin(cx, cy) {
     if (h.held || !state.ready || !h.com) return;
     life.interrupt(8);
@@ -133,7 +151,10 @@ export function setupPet(x) {
       let c = 0;
       for (let i = 0; i < cnt; i += 23) { sum.add(mesh.getVertexPosition(i, v).applyMatrix4(mesh.matrixWorld)); c++; }
       h.com = sum.multiplyScalar(1 / c); h.com.z = 0.05;
+      restPoints=[];
+      for(let i=0;i<cnt;i++)restPoints.push(mesh.getVertexPosition(i,new THREE.Vector3()).applyMatrix4(mesh.matrixWorld));
     }
+    reportFootprint();
     const k = metresPerPx(), a = 1 - Math.exp(-dt * 18), oldVX = h.vx, oldVY = h.vy;
     h.vx += (h.ax * k / dt - h.vx) * a; h.vy += (-h.ay * k / dt - h.vy) * a; h.ax = h.ay = 0;
     // Count sustained, signed turns of the hand's velocity. Straight shakes reverse by ~π and are excluded;
@@ -216,7 +237,7 @@ export function setupPet(x) {
     }
   }
   window.xjPet = {hit, dragBy, release, begin, held: () => h.held, state: h,
-    host: data => life.host(data), interrupt: delay => life.interrupt(delay), prepareVisit: () => life.interrupt(4, false)};
+    host, interrupt: delay => life.interrupt(delay), prepareVisit: () => life.interrupt(4, false)};
   x.resize();
   return {update, beforeUpdate: (dt, t) => life.update(dt, t), interrupt: delay => life.interrupt(delay)};
 }

@@ -33,7 +33,7 @@ function parse(text, data) {
   let r;
   try { r = JSON.parse(text.trim().replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '')); } catch { throw Error('invalid_model_reply'); }
   if (!r || typeof r.speak !== 'boolean') throw Error('invalid_model_reply');
-  const said = r.speak ? short(r.text,80) : '';
+  const said = r.speak ? short(r.text,data.language==='en'?240:80) : '';
   if (r.speak && !said) throw Error('invalid_model_reply');
   const f = r.focus, valid = said && data.kind !== 'chat' && data.observation?.locate === true && f &&
     ['x','y'].every(k => typeof f[k] === 'number' && Number.isFinite(f[k]) && f[k] >= 0 && f[k] <= 1);
@@ -49,7 +49,7 @@ async function generate(data, config, {signal, fetchImpl = fetch} = {}) {
   try {
     response = await fetchImpl(url,{method:'POST',redirect:'error',signal:signal ? AbortSignal.any([signal,timeout]) : timeout,
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+config.apiKey,'x-api-key':config.apiKey,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:config.model,max_tokens:500,system:SYSTEM,messages:[{role:'user',content}]})});
+      body:JSON.stringify({model:config.model,max_tokens:500,system:SYSTEM+(data.language==='en'?'\nReply in English. The text field must be natural English, even if the screenshot or previous conversation is Chinese.':'\n使用简体中文回复，即使画面或历史对话是英文。'),messages:[{role:'user',content}]})});
   } catch { throw Error('model_result_uncertain'); }
   if (!response.ok) throw Error('model_http_'+response.status);
   let result;

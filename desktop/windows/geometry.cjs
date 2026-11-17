@@ -1,6 +1,7 @@
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
-function area(s,size) { return {x:s.x+Math.min(8,Math.max(0,(s.width-size.width)/2)),y:s.y+Math.min(8,Math.max(0,(s.height-size.height)/2)),
-  width:Math.max(0,s.width-size.width-16),height:Math.max(0,s.height-size.height-16)}; }
+function area(s,size,f={x:0,y:0,width:1,height:1}) {const w=size.width*f.width,h=size.height*f.height;
+ return {x:s.x+Math.min(8,Math.max(0,(s.width-w)/2))-size.width*f.x,y:s.y+Math.min(8,Math.max(0,(s.height-h)/2))-size.height*f.y,
+  width:Math.max(0,s.width-w-16),height:Math.max(0,s.height-h-16)}; }
 function bounded(p,a) { return {x:clamp(p.x,a.x,a.x+a.width),y:clamp(p.y,a.y,a.y+a.height)}; }
 function edge(p,a) { const q=bounded(p,a); return [{x:q.x,y:a.y+a.height},{x:a.x,y:q.y},{x:a.x+a.width,y:q.y},{x:q.x,y:a.y}]
   .sort((u,v)=>Math.hypot(u.x-p.x,u.y-p.y)-Math.hypot(v.x-p.x,v.y-p.y))[0]; }
@@ -16,7 +17,7 @@ function point(s,a) { const l=2*(a.width+a.height); if(!l)return {x:a.x,y:a.y}; 
   return{x:a.x,y:a.y+t-2*a.width-a.height}; }
 function target(p,a,f) { if(!onEdge(p,a))return edge(p,a); const l=2*(a.width+a.height),stride=Math.min(l*.45,Math.max(90,l*(.12+Math.abs(f-.5)*.4)));
   return point(position(edge(p,a),a)+(f<.5?-stride:stride),a); }
-function resized(frame,size,screen) {const old=area(screen,frame),a=area(screen,size),p=edge(frame,old);
+function resized(frame,size,screen,footprint) {const old=area(screen,frame,footprint),a=area(screen,size,footprint),p=edge(frame,old);
   const x=a.x+(old.width?(p.x-old.x)/old.width:0)*a.width,y=a.y+(old.height?(p.y-old.y)/old.height:0)*a.height;
   return {...edge({x,y},a),...size};}
 function make(p,dest,a,now,scale,running,id,kind='stroll') {
@@ -27,7 +28,7 @@ function make(p,dest,a,now,scale,running,id,kind='stroll') {
   const raw=[start,aa,...corners.map(x=>point(x,a)),bb,end],points=raw.filter((p,i)=>!i||Math.hypot(p.x-raw[i-1].x,p.y-raw[i-1].y)>.01);
   const lengths=points.slice(1).map((p,i)=>Math.hypot(p.x-points[i].x,p.y-points[i].y)),distance=lengths.reduce((a,b)=>a+b,0);
   if(distance<2)return null;
-  const weights=points.slice(1).map((p,i)=>kind!=='observation'&&Math.abs(p.y-points[i].y)>Math.abs(p.x-points[i].x)*2?4:1);
+  const weights=points.slice(1).map((p,i)=>kind==='stroll'&&onEdge(start,a)&&Math.abs(p.y-points[i].y)>Math.abs(p.x-points[i].x)*2?4:1);
   const costs=lengths.map((n,i)=>n*weights[i]),cost=costs.reduce((a,b)=>a+b,0);
   return{points,lengths,distance,weights,costs,cost,start,end,now,duration:Math.max(1.8,1.5*cost/((running?155:85)*scale)),gait:running?'run':'walk',id,kind};
 }

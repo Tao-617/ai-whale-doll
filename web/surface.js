@@ -105,7 +105,7 @@ export class Pusher {
     this.mesh = mesh;
     this.groups = groups.map(g => ({...g, caps: g.caps.slice(0, MAX)}));
     this.margin = margin;
-    this.uniforms = {};
+    this.uniforms = {uGround:{value:new THREE.Vector4(0,1,0,1e6)}};
     this.groups.forEach((g, n) => Object.assign(this.uniforms, {
       ['uA' + n]: {value: Array.from({length: MAX}, () => new THREE.Vector3())},
       ['uB' + n]: {value: Array.from({length: MAX}, () => new THREE.Vector3())},
@@ -139,6 +139,7 @@ export class Pusher {
     sh.vertexShader = sh.vertexShader
       .replace('void main() {', `
         attribute float aPush;
+        uniform vec4 uGround;
         ${this.groups.some(g => g.wrap) ? 'attribute vec3 aWrap;' : ''}
         ${decl}
         const float K_PUSH = 0.012;
@@ -207,10 +208,15 @@ export class Pusher {
           return p;
         }
         void main() {`)
-      .replace('#include <skinning_vertex>', `#include <skinning_vertex>${body}`);
+      .replace('#include <skinning_vertex>', `#include <skinning_vertex>${body}
+        float floorDepth=dot(uGround.xyz,transformed)+uGround.w;
+        if(aPush>0.5&&floorDepth<0.0) transformed-=uGround.xyz*floorDepth/max(dot(uGround.xyz,uGround.xyz),1e-9);
+      `);
   }
   // capsule ends into the mesh's local space; call every frame after the skeleton is posed
   update() {
+    const floor=this.ground?.(),m=this.mesh.matrixWorld.elements;
+    this.uniforms.uGround.value.set(m[1],m[5],m[9],floor==null?1e6:m[13]-floor);
     const inv = this.mesh.matrixWorld.clone().invert(), s = this.mesh.matrixWorld.getMaxScaleOnAxis();
     this.groups.forEach((g, n) => {
       const U = this.uniforms;

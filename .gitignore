@@ -23,11 +23,14 @@
 !/scripts/serve.py
 !/scripts/capture_readme.mjs
 !/scripts/check_pet_climb.mjs
+!/scripts/check_desktop_i18n.mjs
+!/scripts/check_pet_rest.mjs
 
 /docs/*
 !/docs/install-0.6.txt
 !/docs/release-v0.6.0.md
 !/docs/release-v0.6.1.md
+!/docs/release-v0.6.2.md
 !/docs/media/
 
 # Never commit local configuration, credentials, runtime state or build output.

@@ -11,6 +11,8 @@ import {intentsFromDims, pickSpecial, speed} from './emotion.js';
 import {retargetClip} from './retarget.js';
 import {Mover, Picker, TICS} from './moves.js';
 import {Climber} from './climb.js';
+import {Resting, RESTS} from './rest.js';
+import {t, getLanguage, setLanguage} from './i18n.js';
 
 const canvas = document.querySelector('#stage');
 const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true, preserveDrawingBuffer: true});
@@ -60,7 +62,7 @@ const UP = W(0, 1, 0), RIGHT = W(1, 0, 0), FWD = W(0, 0, 1);
 
 const state = {time: 0, ready: false, style: 'toon', look: new THREE.Vector2(), eyes: new THREE.Vector2(), lookTarget: new THREE.Vector2()};
 const B = {};
-let model, mesh, hoop, pusher, mixer, mover, climber, picker, MOVES = {}, clips = {}, restLocal = new Map(), face, outline, springs = [], colliders = [], restWorld = new Map(), materials = {};
+let model, mesh, hoop, pusher, mixer, mover, climber, resting, picker, MOVES = {}, clips = {}, restLocal = new Map(), face, outline, springs = [], colliders = [], restWorld = new Map(), materials = {};
 
 // v2 (default): the single-mesh Tripo model on a Mixamo skeleton plus our spring bones (scripts/blender/v2/).
 // v1 (?model=v1): the 76-part model on our own Unity-named skeleton (scripts/blender/0x-*.py).
@@ -273,6 +275,7 @@ new GLTFLoader().load(CFG.file, gltf => {
     };
     mover = new Mover(mb, body);
     climber = new Climber(mb, mover);
+    resting = new Resting(mb,mover,scene);
   }
   if (CFG.clips) Promise.all([loadClips(), loadMoves()]).then(() => { state.ready = true; document.body.classList.add('ready'); });
   else { state.ready = true; document.body.classList.add('ready'); }
@@ -541,7 +544,7 @@ function tick(step = null, draw = true) {
     pose('RightUpperArm', [FWD, -0.03 * breathe]);
     // the tail: a slow idle swish, faster with the expression's tailWag, or as a move says ({wag, hz})
     const tw = face.value('tailWag'), mt = state.moveTail;
-    const wagAmp = mt ? 0.12 + 0.4 * (mt.wag ?? 0.5) : 0.12 + 0.3 * tw;
+    const wagAmp = (mt ? 0.12 + 0.4 * (mt.wag ?? 0.5) : (state.pet ? .045 : .12) + 0.3 * tw)*(1-.85*(state.restWeight??0));
     state.wagPhase = (state.wagPhase ?? 0) + dt * (mt ? 2 * Math.PI * (mt.hz ?? 3) : 2.2 + 7 * tw);
     pose('Tail1', [UP, Math.sin(state.wagPhase) * wagAmp]);
     if (mover) {
@@ -554,6 +557,7 @@ function tick(step = null, draw = true) {
       state.moveEars = r.ears; state.moveTail = r.tail; state.moveLook = r.look;
     }
     climber?.update(dt,t,state,camera,canvas);
+    resting?.update(dt,t,state,face);
     // Turn the whole posed skeleton after local gestures/IK, so their surface constraints stay in the same frame.
     // The bones reset next frame; the model root remains exclusively owned by the grab/pendulum physics.
     if (state.petHeading) {
@@ -566,8 +570,11 @@ function tick(step = null, draw = true) {
     face.gaze.set(lx * 0.9, ly * 0.8);
     face.update(dt, t);
     model.updateMatrixWorld(true);
-    if (!state.noSpring) { for (const s of springs) s.update(dt, s.colliders ?? colliders); hoop?.update(); }
+    const ground=()=>state.restWeight>.01&&!state.petHeld ? .03-(1-state.restWeight)*.8:null;
+    if (!state.noSpring) { for (const s of springs) {s.opts.floor=ground;s.update(dt, s.colliders ?? colliders);} hoop?.update(); }
+    if(pusher)pusher.ground=ground;
     pusher?.update();
+    resting?.props(state);
   }
   if (!draw) return;
   controls.update();
@@ -726,16 +733,16 @@ const bubble = document.querySelector('#bubble');
 let bubbleTimer;
 function say(text, interactive = false, {whileMoving = false} = {}) {
   if (!whileMoving) pet?.interrupt(5);
-  const content = String(text ?? '').slice(0, 160);
+  const content = String(t(text ?? '')).slice(0, 280);
   bubble.textContent = content;
   const canReply = interactive && !!window.webkit?.messageHandlers?.pet;
   bubble.classList.toggle('interactive', canReply);
   bubble.setAttribute('role', canReply ? 'button' : 'status');
   bubble.tabIndex = canReply ? 0 : -1;
-  bubble.title = canReply ? '点击回复小鲸' : '';
+  bubble.title = canReply ? t('点击回复小鲸') : '';
   bubble.classList.add('show');
   clearTimeout(bubbleTimer);
-  const duration = Math.min(18000, Math.max(2800, [...content].length * 230));
+  const duration = Math.min(18000, Math.max(2800, [...content].length * (getLanguage()==='en'?65:230)));
   state.bubbleUntil = state.time + duration / 1000;
   state.bubbleBlocking = !whileMoving;
   bubbleTimer = setTimeout(() => bubble.classList.remove('show'), duration);
@@ -755,7 +762,7 @@ function companionReply(reply) {
   face.set(name, 4, state.time);
   if (['head_tilt', 'wave', 'nod_yes', 'think', 'clap', 'tail_wag'].includes(reply.motion)) move(reply.motion, name);
   face.talk(Math.min(6, reply.text.length * 0.13), state.time);
-  say(reply.text.slice(0, 80), true);
+  say(reply.text.slice(0, getLanguage()==='en'?240:80), true);
   return true;
 }
 
@@ -818,4 +825,9 @@ const pet = new URLSearchParams(location.search).get('pet')
   ? setupPet({state, scene, camera, controls, renderer, canvas, model: () => model, mover: () => mover, face: () => face, mesh: () => mesh, pose, move, say, resize,
     playClip: (name, fade) => play(name, fade, true), findMove: id => MOVES[id] ?? TICS.find(m => m.id === id),
     hitPoint: (cx, cy) => { const r = canvas.getBoundingClientRect(); ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height * 2 - 1)); ray.setFromCamera(ndc, camera); return ray.intersectObject(mesh)[0]?.point ?? null; }}) : null;
-window.xj = {say, companionReply, setSplit, act, play, feel, move, emote, tick, render:paint, seek, pause, stepFrame, renderer, scene, tics: TICS, moves: () => MOVES, get mover() { return mover; }, clips: () => clips, get mixer() { return mixer; }, model: () => model, setStyle, setOutline, state, B, springs, camera, controls, clock, poke: p => poke(W(...p)), get face() { return face; }};
+function playRest(id){
+  if(!RESTS[id])return;window.webkit?.messageHandlers?.pet?.postMessage({type:'restPlace'});pet?.interrupt(5);mover?.stop();play(null,.3,true);
+  state.bubbleUntil=state.petAttendUntil=0;document.querySelector('#bubble').classList.remove('show');
+  state.restPreview={id,start:state.time,duration:RESTS[id].duration};
+}
+window.xj = {rest:playRest,restModes:RESTS,setLanguage, getLanguage, say, companionReply, setSplit, act, play, feel, move, emote, tick, render:paint, seek, pause, stepFrame, renderer, scene, tics: TICS, moves: () => MOVES, get mover() { return mover; }, clips: () => clips, get mixer() { return mixer; }, model: () => model, setStyle, setOutline, state, B, springs, camera, controls, clock, poke: p => poke(W(...p)), get face() { return face; }};

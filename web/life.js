@@ -1,3 +1,4 @@
+import {RESTS} from './rest.js';
 // A small local behaviour loop: explore, notice something, gesture, rest. No AI calls or extra permissions.
 // The native host owns desktop coordinates; this loop owns animation and never competes with a user's interaction.
 const STROLL_LINES = [
@@ -11,7 +12,8 @@ export class PetLife {
     this.x = x;
     this.active = false;
     this.mode = 'rest';
-    this.next = 4;
+    this.next = 25;
+    this.nextWalk=120+Math.random()*120;
     this.recent = [];
     this.heading = 0;
     this.travel = null;
@@ -24,18 +26,20 @@ export class PetLife {
     this.tripStarted = 0;
     this.parked = true;
   }
-  host({active, travel = null, chatter = false, parked = true}) {
+  host({active, travel = null, chatter = false, parked = true, visiting = false, floor = true}) {
     const now = this.x.state.time;
     this.chatter = chatter;
     this.parked = parked;
+    this.visiting = visiting;this.floor=floor;
     if (this.active !== active) {
       this.active = active;
-      this.interrupt(active ? 4 : 2);
+      const preview=this.x.state.restPreview;this.interrupt(active ? 20 : 2);this.x.state.restPreview=preview;
     }
     if (!active) return;
     if (travel) {
-      travel={...travel,gait:Math.abs(travel.dy)>Math.abs(travel.dx)*2 && travel.kind!=='observation'?'climb':travel.gait};
+      travel={...travel,gait:Math.abs(travel.dy)>Math.abs(travel.dx)*2 && !['observation','return'].includes(travel.kind)?'climb':travel.gait};
       if (this.travel?.id !== travel.id) {
+        this.x.state.petRest=this.x.state.restPreview=null;
         this.mode = 'travel';
         this.tripStarted = now;
         this.x.face()?.set('smile', 0, now);
@@ -48,7 +52,7 @@ export class PetLife {
     } else if (this.travel) {
       this.stopTravel();
       this.afterTrip = true;
-      this.next = now + 1.2;
+      this.next = now + 25+Math.random()*20;this.nextWalk=now+120+Math.random()*120;
     }
   }
   stopTravel() {
@@ -60,13 +64,14 @@ export class PetLife {
   interrupt(delay = 6, notify = true) {
     if (notify && (this.travel || this.mode === 'waiting')) this.x.post({type: 'roamStop', id:this.travel?.id ?? null});
     this.stopTravel();
+    this.x.state.petRest=null;this.x.state.restPreview=null;
     if (this.ownedMove && this.x.mover()?.playing === this.ownedMove) this.x.mover().stop();
     this.ownedMove = null;
     this.next = Math.max(this.next, this.x.state.time + delay);
   }
   update(dt, now) {
     const {state} = this.x;
-    const blocked = !this.active || state.petHeld || state.petGrab || this.x.settling() ||
+    const blocked = (!this.active && !state.restPreview) || state.petHeld || state.petGrab || this.x.settling() ||
       this.x.face()?.reaction || (state.bubbleBlocking !== false && now < (state.bubbleUntil ?? 0)) || now < (state.petAttendUntil ?? 0);
     if (blocked) this.interrupt(3);
     const target = this.travel ? Math.sign(this.travel.facing || this.travel.dx || 1) * (this.travel.gait==='climb'?Math.PI*.70:
@@ -88,7 +93,16 @@ export class PetLife {
       this.x.say(line, false, {whileMoving: true});
       this.x.face()?.talk(1.8, now);
     }
-    if (blocked || this.travel) return;
+    if (blocked || this.travel || this.visiting) return;
+    // Returning from an observation or a drag takes priority over idle gestures and random rest timers.
+    if (!this.parked && !this.visiting && now >= (this.nextRecovery ?? 0)) {
+      state.petRest=state.restPreview=null;
+      if(this.ownedMove)this.x.mover()?.stop();
+      this.ownedMove=null;this.afterTrip=false;this.nextRecovery=now+2;
+      this.mode='waiting';this.next=now+2;
+      this.x.post({type:'wander',running:true});return;
+    }
+    if(state.restPreview||state.petRest||state.restWeight>.02)return;
     if (this.mode === 'waiting') {
       // A rejected request (no space, display changed) must not strand the pet in a walking animation.
       if (now > this.next) { this.stopTravel(); this.next = now + 3; }
@@ -97,16 +111,20 @@ export class PetLife {
     if (this.ownedMove) {
       if (this.x.mover()?.playing === this.ownedMove) return;
       this.ownedMove = null; this.mode = 'rest';
-      this.next = now + 3 + Math.random() * 5;
+      this.next = now + 30 + Math.random() * 35;
     }
     if (this.x.mover()?.busy || state.clip || now < this.next) return;
-    if (!this.parked || (!this.afterTrip && (this.first || Math.random() < 0.55))) {
+    if (!this.parked || now>=this.nextWalk) {
       this.first = false;
       this.mode = 'waiting'; this.next = now + 2;
-      this.x.post({type: 'wander', running: Math.random() < 0.75});
+      this.x.post({type: 'wander', running: false});
       return;
     }
     this.afterTrip = false;
+    if(this.floor&&Math.random()<.8){
+      const keys=Object.keys(RESTS).filter(k=>k!==this.lastRest),id=keys[Math.floor(Math.random()*keys.length)];this.lastRest=id;
+      this.x.post({type:"restPlace"});state.petRest={id,start:now,duration:RESTS[id].duration};this.next=now+RESTS[id].duration+30+Math.random()*40;return;
+    }
     const ids = ['look_around', 'head_tilt', 'tail_wag', 'wave', 'maid_sway', 'clap', 'cheer',
       'yawn_stretch', 'think', 'tic_glance', 'tic_tail_flick', 'tic_smile_peek', 'tic_ear_twitch', 'tic_hands_behind'];
     const choices = ids.filter(id => !this.recent.includes(id) && this.x.findMove(id));

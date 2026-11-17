@@ -1,18 +1,20 @@
-小鲸 / Xiaojing 0.6.1
+小鲸 / Xiaojing 0.6.2
 
 中文完整说明：https://github.com/Tao-617/ai-whale-doll/blob/main/README.md
 English setup guide: https://github.com/Tao-617/ai-whale-doll/blob/main/README.en.md
 
 Mac: Apple Silicon, macOS 14+. Open the DMG, drag Xiaojing to Applications, then launch it. Settings are in the whale menu bar icon.
 Windows: Windows 10/11 x64. Launch the portable EXE; settings are in the system tray. No Node or Python installation is needed.
-AI is optional. Open Model settings (模型设置) and supply your own Anthropic Messages-compatible API base URL, model ID and API key. Observation starts paused; select allowed apps and enable it explicitly. Mac requires Screen Recording permission. Menus are currently Chinese; the English guide includes the original labels.
+Choose Language / 语言 → English or 简体中文 in the menu. Menus, chat controls, local chatter and AI replies follow this setting. Resting poses lets you crouch, eat rice, or sleep; random walks are usually several minutes apart.
+AI is optional. Open Model settings (模型设置) and supply your own Anthropic Messages-compatible API base URL, model ID and API key. Observation starts paused; select allowed apps and enable it explicitly. Mac requires Screen Recording permission.
 Packages are not commercially signed or Apple-notarized. The Windows build has not yet been tested on a real Windows desktop.
 
 Mac：适用于 Apple Silicon（M 系列）和 macOS 14 以上。打开 DMG，把 Xiaojing 拖入 Applications，然后启动。
-Windows：适用于 Windows 10/11 x64，直接双击 Xiaojing-0.6.1-Windows-x64.exe；无需安装 Node 或 Python。
+Windows：适用于 Windows 10/11 x64，直接双击 Xiaojing-0.6.2-Windows-x64.exe；无需安装 Node 或 Python。
 
 桌宠本体、模型和动画都在包内。默认沿屏幕四周随机走动，能在两侧上下移动；拖动时可以拎起来，转圈会转晕。右键小鲸可以聊天。
 Mac 的设置在菜单栏鲸鱼图标；Windows 在右下角系统托盘（可能需要展开隐藏图标）。可改变大小、暂停自由活动、回右下角或退出。
+Language / 语言 可切换简体中文和 English，菜单、聊天界面、本地台词及 AI 回复一起切换。「休息动作」可选抱头发呆、坐着吃白饭、侧躺睡觉；现在隔几分钟才随机散步一次。
 
 AI 可选：菜单“模型设置”填写支持图片的 Anthropic Messages 兼容 API 根地址、模型 ID、自己的 API Key。只用本地跑动和动作不需要配置。Mac 密钥存在钥匙串，Windows 使用系统加密后保存。包内没有开发者的密钥，也不依赖开发者的项目目录。
 观察默认暂停，名单默认空。选择愿意让模型查看的应用，再开启观察。Mac 需授予录屏权限；Windows 仅截指定前台窗口，无法捕获或黑屏时跳过，不降级截整个屏幕。

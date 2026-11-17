@@ -86,6 +86,12 @@ export class SpringChain {
         if (dq < mq && dq > 1e-6) next.addScaledVector(q.sub(o).normalize(), (mq - dq) / f).sub(head).setLength(len).add(head);
       }
     }
+    const floor=this.opts.floor?.();
+    if(floor!=null&&next.y<floor+radius){
+      const dy=THREE.MathUtils.clamp(floor+radius-head.y,-len,len),horizontal=Math.sqrt(Math.max(0,len*len-dy*dy));
+      const d=next.clone().sub(head);d.y=0;if(d.lengthSq()<1e-9)d.set(0,0,1);
+      next.copy(head).add(d.setLength(horizontal));next.y=head.y+dy;
+    }
   }
 
   // after something else moved the tails (Hoop): collide again and re-aim, root to tip

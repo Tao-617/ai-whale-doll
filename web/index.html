@@ -15,7 +15,7 @@
   #bubble.show { opacity: 1; transform: translate(-50%, 0); }
   #bubble { box-sizing: border-box; max-width: min(420px, calc(100vw - 24px)); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; z-index: 5; }
   #bubble.interactive.show { pointer-events: auto; cursor: pointer; }
-  #bubble.interactive::after { content: '点击回复'; display: block; font-size: 10px; color: #6a7c9d; margin-top: 3px; }
+  #bubble.interactive::after { content: attr(data-reply); display: block; font-size: 10px; color: #6a7c9d; margin-top: 3px; }
   #bubble:focus-visible { outline: 2px solid #6d94e0; outline-offset: 2px; }
   #bar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
     background: rgba(255, 255, 255, .7); backdrop-filter: blur(8px); padding: 8px 10px; border-radius: 14px; }

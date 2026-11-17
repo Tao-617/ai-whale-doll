@@ -5,6 +5,14 @@ import CoreGraphics
     static func main() {
         var count = 0
         func check(_ ok: Bool, _ why: String) { precondition(ok, why); count += 1 }
+        let ink=CGRect(x:0.21,y:0.17,width:0.58,height:0.65),display=CGRect(x:-1920,y:-150,width:1920,height:1080)
+        for width in [CGFloat(260),360,520] {
+            let size=CGSize(width:width,height:(width*4/3).rounded()),a=RoamPath.area(screen:display,size:size,footprint:ink)
+            check(abs(a.minX+ink.minX*size.width-display.minX-8)<1e-7,"visible left side, not transparent padding, hugs the screen")
+            check(abs(display.maxX-(a.maxX+ink.maxX*size.width)-8)<1e-7,"visible right side hugs the screen")
+            check(abs(a.minY+(1-ink.maxY)*size.height-display.minY-8)<1e-7,"feet hug the bottom")
+            check(abs(display.maxY-(a.maxY+(1-ink.minY)*size.height)-8)<1e-7,"head stays below the top edge")
+        }
         for screen in [CGRect(x: 0, y: 30, width: 1440, height: 845),
                        CGRect(x: -1920, y: -200, width: 1920, height: 1040),
                        CGRect(x: 0, y: 0, width: 600, height: 700)] {

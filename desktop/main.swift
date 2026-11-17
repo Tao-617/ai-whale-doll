@@ -52,6 +52,7 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
     let chat = ChatPanel()
     let modelSettings = ModelSettings()
     var lively = true, menuOpen = false, strollChatter = true
+    var footprint = CGRect(x:0,y:0,width:1,height:1)
     var roam: RoamPath?, roamID = 0
     var visitSource: ObservedWindow?, visitToken: UUID?
     var visitCompletion: ((Bool) -> Void)?
@@ -90,6 +91,13 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
         if let dev = ProcessInfo.processInfo.environment["XJ_URL"], let u = URL(string: dev) { self.web.load(URLRequest(url: u)) }
         else { self.web.load(URLRequest(url: URL(string: "xj://app/index.html?pet=1")!)) }
         window.orderFrontRegardless()
+        if ProcessInfo.processInfo.environment["XJ_DEBUG"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now()+8) { [weak self] in
+                self?.web.evaluateJavaScript("JSON.stringify({url:location.href,body:document.body.className,html:document.documentElement.className,xj:!!window.xj,ready:window.xj?.state.ready,pet:!!window.xjPet})") { result,error in
+                    FileHandle.standardError.write("[page] state \(result ?? "nil") \(String(describing:error))\n".data(using:.utf8)!)
+                }
+            }
+        }
 
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         status.button?.title = "🐳"
@@ -122,16 +130,22 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
 
     func rebuildMenu() {
         // Also expose state on the borderless panel for accessibility and local verification.
-        window.title = "小鲸 · 观察" + (companion.enabled ? "开启" : "暂停") + " · 位置联动" +
-            (companion.approachEnabled ? "开启" : "关闭") + " · " + companion.status
+        window.title = L("小鲸") + " · " + L("观察") + ": " + (companion.enabled ? L("开启") : L("暂停")) + " · " + L("位置联动") + ": " +
+            (companion.approachEnabled ? L("开启") : L("关闭")) + " · " + companion.status
         let menu = status.menu ?? NSMenu()
         menu.removeAllItems(); menu.delegate = self
         status.button?.title = companion.enabled ? "🐳·" : "🐳"
         status.button?.toolTip = companion.status
         let info = menu.addItem(withTitle: companion.status, action: nil, keyEquivalent: ""); info.isEnabled = false
-        let observing = menu.addItem(withTitle: companion.enabled ? "暂停观察" : "开启观察", action: #selector(toggleObservation), keyEquivalent: "")
+        let observing = menu.addItem(withTitle: companion.enabled ? L("暂停观察") : L("开启观察"), action: #selector(toggleObservation), keyEquivalent: "")
         observing.target = self; observing.state = companion.enabled ? .on : .off
-        let appMenu = NSMenu(title: "允许观察的应用")
+        let languages=NSMenu(title:"Language / 语言")
+        for (code,title) in [("zh","简体中文"),("en","English")] {
+            let item=languages.addItem(withTitle:title,action:#selector(changeLanguage(_:)),keyEquivalent:"")
+            item.target=self;item.representedObject=code;item.state=L10n.language==code ? .on:.off
+        }
+        let languageItem=menu.addItem(withTitle:"Language / 语言",action:nil,keyEquivalent:"");languageItem.submenu=languages
+        let appMenu = NSMenu(title: L("允许观察的应用"))
         var apps: [String: String] = Dictionary(uniqueKeysWithValues: companion.allowed.map { ($0, $0) })
         for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
             if let id = app.bundleIdentifier, companion.selectable(id) { apps[id] = app.localizedName ?? id }
@@ -140,34 +154,43 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
             let item = appMenu.addItem(withTitle: name, action: #selector(toggleObservedApp(_:)), keyEquivalent: "")
             item.target = self; item.representedObject = id; item.state = companion.allowed.contains(id) ? .on : .off
         }
-        let appItem = menu.addItem(withTitle: "允许观察的应用", action: nil, keyEquivalent: ""); appItem.submenu = appMenu
-        let peek = menu.addItem(withTitle: "看一眼当前窗口", action: #selector(peekNow), keyEquivalent: ""); peek.target = self
-        let talk = menu.addItem(withTitle: "和小鲸聊一句…", action: #selector(openChat), keyEquivalent: ""); talk.target = self
-        let model = menu.addItem(withTitle:"模型设置…",action:#selector(openModelSettings),keyEquivalent:""); model.target = self
-        let cadence = menu.addItem(withTitle: "每分钟搭一句 · 无新操作时安静", action: nil, keyEquivalent: ""); cadence.isEnabled = false
-        let privacy = menu.addItem(withTitle: "只看当前窗口 · 内容发送到云端模型", action: nil, keyEquivalent: ""); privacy.isEnabled = false
+        let appItem = menu.addItem(withTitle: L("允许观察的应用"), action: nil, keyEquivalent: ""); appItem.submenu = appMenu
+        let peek = menu.addItem(withTitle: L("看一眼当前窗口"), action: #selector(peekNow), keyEquivalent: ""); peek.target = self
+        let talk = menu.addItem(withTitle: L("和小鲸聊一句…"), action: #selector(openChat), keyEquivalent: ""); talk.target = self
+        let model = menu.addItem(withTitle:L("模型设置…"),action:#selector(openModelSettings),keyEquivalent:""); model.target = self
+        let cadence = menu.addItem(withTitle: L("每分钟搭一句 · 无新操作时安静"), action: nil, keyEquivalent: ""); cadence.isEnabled = false
+        let privacy = menu.addItem(withTitle: L("只看当前窗口 · 内容发送到云端模型"), action: nil, keyEquivalent: ""); privacy.isEnabled = false
         menu.addItem(.separator())
-        let a = menu.addItem(withTitle: "桌宠（置顶，可以抓）", action: #selector(modePet), keyEquivalent: ""); a.target = self; a.state = wallpaper ? .off : .on
-        let b = menu.addItem(withTitle: "壁纸（在图标后面）", action: #selector(modeWall), keyEquivalent: ""); b.target = self; b.state = wallpaper ? .on : .off
-        let life = menu.addItem(withTitle: "自由活动（跑动和小动作）", action: #selector(toggleLively), keyEquivalent: "")
+        let a = menu.addItem(withTitle: L("桌宠（置顶，可以抓）"), action: #selector(modePet), keyEquivalent: ""); a.target = self; a.state = wallpaper ? .off : .on
+        let b = menu.addItem(withTitle: L("壁纸（在图标后面）"), action: #selector(modeWall), keyEquivalent: ""); b.target = self; b.state = wallpaper ? .on : .off
+        let life = menu.addItem(withTitle: L("自由活动（跑动和小动作）"), action: #selector(toggleLively), keyEquivalent: "")
         life.target = self; life.state = lively ? .on : .off
-        let chatter = menu.addItem(withTitle: "跑动时偶尔闲聊", action: #selector(toggleChatter), keyEquivalent: "")
+        let chatter = menu.addItem(withTitle: L("跑动时偶尔闲聊"), action: #selector(toggleChatter), keyEquivalent: "")
         chatter.target = self; chatter.state = strollChatter ? .on : .off
-        let approach = menu.addItem(withTitle: "截图后主动靠近内容（说完回边缘）", action: #selector(toggleApproach), keyEquivalent: "")
+        let approach = menu.addItem(withTitle: L("截图后主动靠近内容（说完回边缘）"), action: #selector(toggleApproach), keyEquivalent: "")
         approach.target = self; approach.state = companion.approachEnabled ? .on : .off
         menu.addItem(.separator())
+        let rests=NSMenu(title:L("休息动作"))
+        for (id,key) in [("brood","蹲下抱头发呆"),("rice","坐下吃白饭"),("sleep","躺下睡大觉")] {
+            let item=rests.addItem(withTitle:L(key),action:#selector(restAction(_:)),keyEquivalent:"");item.target=self;item.representedObject=id
+        }
+        let restItem=menu.addItem(withTitle:L("休息动作"),action:nil,keyEquivalent:"");restItem.submenu=rests
         let cur = store.object(forKey: "size") as? Int ?? 1
         for (i, s) in sizes.enumerated() {
-            let it = menu.addItem(withTitle: "大小：" + s.0, action: #selector(setSize(_:)), keyEquivalent: ""); it.target = self; it.tag = i; it.state = i == cur ? .on : .off
+            let it = menu.addItem(withTitle: L("大小：") + L(s.0), action: #selector(setSize(_:)), keyEquivalent: ""); it.target = self; it.tag = i; it.state = i == cur ? .on : .off
         }
         menu.addItem(.separator())
-        let c = menu.addItem(withTitle: "回到屏幕右下角", action: #selector(home), keyEquivalent: ""); c.target = self
-        let q = menu.addItem(withTitle: "退出", action: #selector(quit), keyEquivalent: "q"); q.target = self
+        let c = menu.addItem(withTitle: L("回到屏幕右下角"), action: #selector(home), keyEquivalent: ""); c.target = self
+        let q = menu.addItem(withTitle: L("退出"), action: #selector(quit), keyEquivalent: "q"); q.target = self
         status.menu = menu
     }
     func menuNeedsUpdate(_ menu: NSMenu) { if menu === status.menu { rebuildMenu() } }
     func menuWillOpen(_ menu: NSMenu) { menuOpen = true; stopRoaming(); sendHost() }
     func menuDidClose(_ menu: NSMenu) { menuOpen = false; sendHost() }
+    @objc func changeLanguage(_ item:NSMenuItem) {
+        guard let code=item.representedObject as? String else { return }
+        L10n.language=code;companion.languageChanged();chat.refreshLanguage();modelSettings.refreshLanguage();sendHost();rebuildMenu()
+    }
     @objc func toggleLively() {
         lively.toggle(); store.set(lively, forKey: "lively")
         stopRoaming(); sendHost(); rebuildMenu()
@@ -188,7 +211,7 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
     }
     @objc func openChat() {
         stopRoaming()
-        chat.event("state", companion.busy ? "小鲸正在想…" : "")
+        chat.event("state", companion.busy ? L("小鲸正在想…") : "")
         chat.open()
         sendHost()
     }
@@ -200,13 +223,14 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
     @objc func home() {
         restLife()
         let s = NSScreen.main!.visibleFrame
-        window.setFrameOrigin(NSPoint(x: s.maxX - window.frame.width - 40, y: s.minY)); adopt(); savePlace()
+        let area=RoamPath.area(screen:s,size:window.frame.size,footprint:footprint)
+        window.setFrameOrigin(CGPoint(x:area.maxX,y:area.minY)); adopt(); savePlace(); sendHost()
     }
     @objc func setSize(_ item: NSMenuItem) {
         let screen = roamScreen().visibleFrame, f = window.frame
         restLife()
         let size = sizes[item.tag].1
-        window.setFrame(RoamPath.resizedFrame(f, to: size, screen: screen), display: true)
+        window.setFrame(RoamPath.resizedFrame(f, to: size, screen: screen, footprint:footprint), display: true)
         store.set(item.tag, forKey: "size"); adopt(); savePlace(); lastDisplayArea = roamArea(); sendHost(); rebuildMenu()
     }
     func setWallpaper(_ on: Bool) {
@@ -241,7 +265,7 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
         } ?? NSScreen.main!
         return screen
     }
-    func roamArea() -> CGRect { RoamPath.area(screen: roamScreen().visibleFrame, size: window.frame.size) }
+    func roamArea() -> CGRect { RoamPath.area(screen: roamScreen().visibleFrame, size: window.frame.size, footprint:footprint) }
     func startRoaming(running: Bool) {
         guard canWander, roam == nil, visitToken == nil else { return }
         let area = roamArea(), start = RoamPath.clamp(window.frame.origin, to: area)
@@ -282,6 +306,15 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
         roam = nil; visitToken = nil; visitSource = nil; visitCompletion = nil
         savePlace(); sendHost(); done?(arrived)
     }
+    func prepareRest() {
+        guard !dragging, visitToken == nil else { return };stopRoaming()
+        let s=roamScreen().visibleFrame,a=roamArea()
+        window.setFrameOrigin(CGPoint(x:min(s.maxX-window.frame.width-8,max(s.minX+8,window.frame.minX)),y:a.minY));adopt();savePlace();sendHost()
+    }
+    @objc func restAction(_ item:NSMenuItem) {
+        guard let id=item.representedObject as? String else { return };restLife();prepareRest()
+        web.evaluateJavaScript("window.xj && xj.rest('\(id)')",completionHandler:nil)
+    }
     func restLife() {
         stopRoaming()
         web?.evaluateJavaScript("window.xjPet && xjPet.interrupt(6)", completionHandler: nil)
@@ -289,12 +322,15 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
     func hostJSON() -> String {
         let area = roamArea()
         var payload: [String: Any] = ["active": canWander, "chatter": strollChatter && !companion.busy && !companion.waitingToSpeak,
-            "parked": area.width+area.height < 45 || RoamPath.onEdge(window.frame.origin, in: area)]
+            "parked": area.width+area.height < 45 || RoamPath.onEdge(window.frame.origin, in: area),
+            "floor":abs(window.frame.minY-area.minY)<3, "language":L10n.language, "visiting":visitToken != nil || (companion.waitingToSpeak && ProcessInfo.processInfo.systemUptime<visitArrivedUntil)]
+        let frame=window.frame, visible=roamScreen().visibleFrame.intersection(frame)
+        payload["viewport"]=["left":max(0,visible.minX-frame.minX),"right":min(frame.width,visible.maxX-frame.minX),"top":max(0,frame.maxY-visible.maxY),"bottom":min(frame.height,frame.maxY-visible.minY)]
         if let path = roam {
             let s = path.sample(ProcessInfo.processInfo.systemUptime)
             payload["travel"] = ["id": path.id, "gait": path.gait, "dx": s.direction.x,
                                  "facing": abs(s.direction.y)>abs(s.direction.x)*2 ? (window.frame.midX < roamScreen().visibleFrame.midX ? -1:1) : (s.direction.x < 0 ? -1:1),
-                                 "dy": s.direction.y, "speed": s.speed, "kind": visitToken == nil ? "stroll" : "observation"]
+                                 "dy": s.direction.y, "speed": s.speed, "kind": visitToken != nil ? "observation" : path.recovering ? "return":"stroll"]
         }
         let data = try! JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])
         return String(data: data, encoding: .utf8)!
@@ -309,6 +345,7 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
     func userContentController(_ c: WKUserContentController, didReceive m: WKScriptMessage) {
         guard let d = m.body as? [String: Any], let type = d["type"] as? String else { return }
         if type == "grab", !wallpaper { dragging = true; stopRoaming(); last = NSEvent.mouseLocation; window.ignoresMouseEvents = false }
+        else if type == "restPlace" { prepareRest() }
         else if type == "wander" { startRoaming(running: d["running"] as? Bool ?? true) }
         else if type == "roamStop", let id=d["id"] as? Int, roam?.id == id { stopRoaming() }
         else if type == "release", dragging {
@@ -321,6 +358,15 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
             if !dragging { savePlace() }
         }
         else if type == "chat" { openChat() }
+        else if type == "footprint", let x=d["x"] as? Double, let y=d["y"] as? Double,
+                let w=d["width"] as? Double, let h=d["height"] as? Double,
+                [x,y,w,h].allSatisfy({$0.isFinite}), x>=0,y>=0,w>0.1,h>0.1,x+w<=1.001,y+h<=1.001 {
+            footprint=CGRect(x:x,y:y,width:w,height:h)
+            if !dragging && visitToken == nil {
+                stopRoaming();window.setFrameOrigin(RoamPath.edge(window.frame.origin,in:roamArea()));adopt();savePlace()
+            }
+            lastDisplayArea=roamArea();sendHost()
+        }
         else if type == "ready" {
             companion.ready = true
             // Explicit local one-shot request, consumed before attempting. Normal launches still start paused.

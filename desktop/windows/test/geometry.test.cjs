@@ -1,4 +1,14 @@
 const test=require('node:test'),assert=require('node:assert/strict'),G=require('../geometry.cjs');
+test('the visible character touches the edge, even when the transparent window does not',()=>{
+ const screen={x:-1920,y:-150,width:1920,height:1080},ink={x:.21,y:.17,width:.58,height:.65};
+ for(const width of [260,360,520]){const size={width,height:Math.round(width*4/3)},a=G.area(screen,size,ink);
+  for(const side of [0,1,2,3]){const p=G.edge(side===0?{x:a.x,y:a.y+a.height/2}:side===1?{x:a.x+a.width,y:a.y+a.height/2}:side===2?{x:a.x+a.width/2,y:a.y}:{x:a.x+a.width/2,y:a.y+a.height},a);
+   const r={left:p.x+ink.x*size.width,top:p.y+ink.y*size.height,right:p.x+(ink.x+ink.width)*size.width,bottom:p.y+(ink.y+ink.height)*size.height};
+   const gap=[r.left-screen.x,screen.x+screen.width-r.right,r.top-screen.y,screen.y+screen.height-r.bottom][side];assert(Math.abs(gap-8)<1e-7);
+   assert(r.left>=screen.x&&r.right<=screen.x+screen.width&&r.top>=screen.y&&r.bottom<=screen.y+screen.height);
+  }
+ }
+});
 test('climbing is slower than walking, with the actual speed reported to the renderer',()=>{
  const a={x:0,y:0,width:1000,height:600},start={x:0,y:600};
  for(const scale of [260/360,1,520/360])for(const running of [false,true]){

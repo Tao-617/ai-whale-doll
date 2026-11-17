@@ -12,14 +12,16 @@ struct RoamPath {
     let id: Int
     let points: [CGPoint]
     let climbWeight: CGFloat
+    let recovering: Bool
     static let turnTime: TimeInterval = 0.4
 
-    static func area(screen: CGRect, size: CGSize) -> CGRect {
+    static func area(screen: CGRect, size: CGSize, footprint: CGRect = CGRect(x:0,y:0,width:1,height:1)) -> CGRect {
         let margin: CGFloat = 8
-        return CGRect(x: screen.minX + min(margin, max(0, (screen.width - size.width) / 2)),
-                      y: screen.minY + min(margin, max(0, (screen.height - size.height) / 2)),
-                      width: max(0, screen.width - size.width - 2 * margin),
-                      height: max(0, screen.height - size.height - 2 * margin))
+        let width=size.width*footprint.width, height=size.height*footprint.height
+        // The footprint uses the renderer's top-left origin. Transparent padding may extend off-screen.
+        return CGRect(x: screen.minX + min(margin, max(0, (screen.width-width)/2)) - size.width*footprint.minX,
+                      y: screen.minY + min(margin, max(0, (screen.height-height)/2)) - size.height*(1-footprint.maxY),
+                      width: max(0, screen.width-width-2*margin), height: max(0, screen.height-height-2*margin))
     }
     static func clamp(_ p: CGPoint, to area: CGRect) -> CGPoint {
         CGPoint(x: min(area.maxX, max(area.minX, p.x)), y: min(area.maxY, max(area.minY, p.y)))
@@ -63,8 +65,8 @@ struct RoamPath {
             result.append(p)
         }
     }
-    static func resizedFrame(_ frame: CGRect, to size: CGSize, screen: CGRect) -> CGRect {
-        let old = area(screen:screen,size:frame.size), next = area(screen:screen,size:size)
+    static func resizedFrame(_ frame: CGRect, to size: CGSize, screen: CGRect, footprint: CGRect = CGRect(x:0,y:0,width:1,height:1)) -> CGRect {
+        let old = area(screen:screen,size:frame.size,footprint:footprint), next = area(screen:screen,size:size,footprint:footprint)
         let p = edge(frame.origin,in:old)
         let fx = old.width > 0 ? (p.x-old.minX)/old.width : 0
         let fy = old.height > 0 ? (p.y-old.minY)/old.height : 0
@@ -82,7 +84,8 @@ struct RoamPath {
         var points = route(from: start, to: end, in: area)
         if intentional, let last=points.last, hypot(last.x-end.x,last.y-end.y)>0.01 { points.append(end) }
         guard zip(points,points.dropFirst()).reduce(CGFloat(0), { $0+hypot($1.1.x-$1.0.x,$1.1.y-$1.0.y) }) >= 2 else { return nil }
-        let climbWeight: CGFloat = intentional ? 1 : 4
+        let recovering = !onEdge(start,in:area)
+        let climbWeight: CGFloat = intentional || recovering ? 1 : 4
         let distance = zip(points, points.dropFirst()).reduce(CGFloat(0)) {
             let dx=$1.1.x-$1.0.x, dy=$1.1.y-$1.0.y
             return $0 + hypot(dx,dy) * (abs(dy)>abs(dx)*2 ? climbWeight:1)
@@ -90,7 +93,7 @@ struct RoamPath {
         guard distance >= 2 else { return nil }
         let speed = (running ? 155.0 : 85.0) * scale
         return RoamPath(start: start, end: end, started: now,
-                        duration: max(1.8, 1.5 * distance / speed), gait: running ? "run" : "walk", id: id, points: points, climbWeight: climbWeight)
+                        duration: max(1.8, 1.5 * distance / speed), gait: running ? "run" : "walk", id: id, points: points, climbWeight: climbWeight, recovering:recovering)
     }
     func sample(_ now: TimeInterval) -> (point: CGPoint, speed: Double, done: Bool, direction: CGPoint) {
         let u = min(1, max(0, (now - started - Self.turnTime) / duration))

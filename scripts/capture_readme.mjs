@@ -45,14 +45,18 @@ async function movie(page,name,seconds,prepare,frame,gifWidth=400){
  assert.equal((await once(gif,'close'))[0],0);console.log('Encoded '+name+'.gif');
 }
 try{
+ if(!clip){
  const viewer=await openPage(false,1200,800);
  await viewer.evaluate(()=>{xj.move('wave');steps(35);});
- await viewer.screenshot({path:out+'test-page.png'});console.log('Captured test-page.png');
+ await viewer.screenshot({path:out+'test-page.png'});console.log('Captured test-page.png');await viewer.close();}
  const pet=await openPage(true,600,640);
  await pet.addStyleTag({content:'html.pet,html.pet body{background:radial-gradient(ellipse at 50% 30%,#f7faff 0%,#e6edfc 60%,#d5e2f7 100%)}html.pet #bubble{top:28px;font-size:17px;padding:10px 18px}'});
- await pet.evaluate(()=>{xj.companionReply({speak:true,text:'你好呀，我是小鲸～',emotion:'happy',motion:'wave'});steps(40);});
- await pet.waitForTimeout(300);await pet.screenshot({path:out+'hello.png'});console.log('Captured hello.png');
+ if(!clip){await pet.evaluate(()=>{xj.companionReply({speak:true,text:'你好呀，我是小鲸～',emotion:'happy',motion:'wave'});steps(40);});
+ await pet.waitForTimeout(300);await pet.screenshot({path:out+'hello.png'});console.log('Captured hello.png');}
  if(!process.argv.includes('--stills')){
+  if(!clip||clip==='resting')await movie(pet,'resting',15,()=>{xjPet.host({active:false});xjPet.interrupt(0);},i=>{
+   if(i%75===0)xj.rest(['brood','rice','sleep'][Math.floor(i/75)]);steps(2);
+  },400);
   if(!clip||clip==='walk-climb')await movie(pet,'walk-climb',8,()=>{
    xjPet.interrupt(0);xj.mover.stop();xj.state.bubbleUntil=0;xj.state.petAttendUntil=0;
    const bubble=document.querySelector('#bubble');bubble.style.transition='none';bubble.textContent='';bubble.classList.remove('show');

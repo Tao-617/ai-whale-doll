@@ -6,9 +6,11 @@
 
 <p align="center"><img src="docs/media/hello.png" width="320" alt="小鲸挥手打招呼，头顶显示对话气泡"></p>
 
-**[下载安装包](https://github.com/Tao-617/ai-whale-doll/releases/tag/v0.6.1)** · [安装与启动](#安装与启动) · [配置 AI 聊天](#配置-ai-聊天) · [开启观察与主动移动](#开启观察与主动移动) · [从源码运行](#从源码运行)
+**[下载安装包](https://github.com/Tao-617/ai-whale-doll/releases/tag/v0.6.2)** · [安装与启动](#安装与启动) · [配置 AI 聊天](#配置-ai-聊天) · [开启观察与主动移动](#开启观察与主动移动) · [从源码运行](#从源码运行)
 
-当前为 **0.6.1 测试版**。Mac 已在本机启动验证；Windows 包由 Mac 交叉构建，尚待真实 Windows 桌面验收。安装包未做 Apple 公证或 Windows 商业代码签名，首次运行可能出现系统提示。
+当前为 **0.6.2 测试版**。Mac 已在本机启动验证；Windows 包由 Mac 交叉构建，尚待真实 Windows 桌面验收。安装包未做 Apple 公证或 Windows 商业代码签名，首次运行可能出现系统提示。
+
+支持应用内中英文切换：🐳 菜单／托盘 → **Language / 语言 → 简体中文或 English**。首次跟随系统语言，之后记住选择；菜单、聊天界面、本地台词与 AI 回复一起切换。
 
 ## 效果预览
 
@@ -18,6 +20,14 @@
 | [查看 8 秒 MP4](docs/media/walk-climb.mp4) | [查看 10 秒 MP4](docs/media/expressions.mp4) |
 
 以上素材录自项目测试页，使用固定镜头预览真实模型与动作；气泡是固定演示台词。录制没有读取真实桌面内容，也没有调用云端模型。桌面位置由原生外壳控制，因此这里展示的是原地动作预览。
+
+### 安静休息 · 0.6.2
+
+通常隔 2–4 分钟才散步一次，正在休息时可以更久。她会在底边蹲下抱头发呆、坐着吃白饭或侧躺睡觉；菜单「休息动作」也能随时选。饭碗、米饭和勺子由程序生成，无须下载额外模型。抓取、聊天会打断休息。
+
+![抱头发呆、坐着吃饭、侧躺睡觉](docs/media/resting.gif)
+
+[查看 15 秒 MP4](docs/media/resting.mp4)。随机活动按角色可见轮廓贴边；截图主动访问仍可暂时进入内容区，说完优先回边缘。
 
 ### 四肢攀爬 · 0.6.1
 
@@ -40,8 +50,8 @@
 
 | 平台 | 下载 | 系统要求 |
 | --- | --- | --- |
-| Mac | [Xiaojing-0.6.1-macOS-arm64.dmg](https://github.com/Tao-617/ai-whale-doll/releases/download/v0.6.1/Xiaojing-0.6.1-macOS-arm64.dmg) | M 系列芯片，macOS 14 及以上；不支持 Intel Mac |
-| Windows | [Xiaojing-0.6.1-Windows-x64.exe](https://github.com/Tao-617/ai-whale-doll/releases/download/v0.6.1/Xiaojing-0.6.1-Windows-x64.exe) | Windows 10/11 x64；免安装测试版 |
+| Mac | [Xiaojing-0.6.2-macOS-arm64.dmg](https://github.com/Tao-617/ai-whale-doll/releases/download/v0.6.2/Xiaojing-0.6.2-macOS-arm64.dmg) | M 系列芯片，macOS 14 及以上；不支持 Intel Mac |
+| Windows | [Xiaojing-0.6.2-Windows-x64.exe](https://github.com/Tao-617/ai-whale-doll/releases/download/v0.6.2/Xiaojing-0.6.2-Windows-x64.exe) | Windows 10/11 x64；免安装测试版 |
 
 ### Mac
 
@@ -65,7 +75,8 @@ Windows 版本目前没有正式代码签名，可能出现发布者未验证提
 
 这些功能**不用配置 AI，也不用录屏权限**：
 
-- 「自由活动」：沿四周边缘走动、攀爬，停下后做小动作。
+- 「自由活动」：偶尔沿四周边缘走动、攀爬，其余时间安静休息。
+- 「休息动作」：蹲下抱头发呆、坐下吃白饭、躺下睡大觉。
 - 「跑动时偶尔闲聊」：跑动时显示本地短台词。
 - 抓住身体拖动；从下方往上提会倒立，往下拉则正常下移；转圈会转晕。
 - 「大小：小／中／大」：切换尺寸后重新贴回边缘。
@@ -201,7 +212,7 @@ npm test
 npm run pack
 ```
 
-然后到项目中的 `desktop/dist/windows/` 双击 `Xiaojing-0.6.1-Windows-x64.exe`。开发时可在 **Windows** 的 `desktop/windows/` 目录运行 `npx electron .`。详细实现见 [Windows 开发说明](desktop/windows/README.md)。
+然后到项目中的 `desktop/dist/windows/` 双击 `Xiaojing-0.6.2-Windows-x64.exe`。开发时可在 **Windows** 的 `desktop/windows/` 目录运行 `npx electron .`。详细实现见 [Windows 开发说明](desktop/windows/README.md)。
 
 ## 验证与限制
 

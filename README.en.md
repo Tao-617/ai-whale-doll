@@ -6,11 +6,11 @@ A 3D desktop companion who walks and climbs around the edges of your screen, pla
 
 <p align="center"><img src="docs/media/hello.png" width="320" alt="Xiaojing waving hello with a speech bubble"></p>
 
-**[Download](https://github.com/Tao-617/ai-whale-doll/releases/tag/v0.6.1)** · [Install and launch](#install-and-launch) · [Configure AI chat](#configure-ai-chat) · [Observation and movement](#observation-and-movement) · [Run from source](#run-from-source)
+**[Download](https://github.com/Tao-617/ai-whale-doll/releases/tag/v0.6.2)** · [Install and launch](#install-and-launch) · [Configure AI chat](#configure-ai-chat) · [Observation and movement](#observation-and-movement) · [Run from source](#run-from-source)
 
-Current release: **0.6.1 preview**. The Mac app has been launched locally. The Windows package is cross-built on Mac and still needs testing on a real Windows desktop. Packages are not Apple-notarized or commercially code-signed for Windows, so first-launch security prompts may appear.
+Current release: **0.6.2 preview**. The Mac app has been launched locally. The Windows package is cross-built on Mac and still needs testing on a real Windows desktop. Packages are not Apple-notarized or commercially code-signed for Windows, so first-launch security prompts may appear.
 
-This English guide includes the original Chinese menu labels so you can find the corresponding controls. The application menus and built-in chatter currently remain in Chinese.
+Choose **Language / 语言 → English** in the 🐳 menu or system tray. The first launch follows your system language; later launches remember your choice. Menus, chat controls, built-in chatter, and AI replies follow this setting. Chinese labels below are included as references.
 
 ## Preview
 
@@ -20,6 +20,14 @@ This English guide includes the original Chinese menu labels so you can find the
 | [8-second MP4](docs/media/walk-climb.mp4) | [10-second MP4](docs/media/expressions.mp4) |
 
 These clips were recorded from the project's test page using the real model and animations. Speech bubbles contain fixed demo lines. No actual desktop content was captured and no cloud model was called. The native app controls desktop movement; these clips preview the poses in place.
+
+### Quiet resting · 0.6.2
+
+Walks are usually 2–4 minutes apart, sometimes longer while resting. At the bottom edge she can crouch and brood, sit and eat rice, or lie on her side and sleep. Choose a pose anytime under **Resting poses**. The bowl, rice, and spoon are procedural meshes; no extra model download is needed. Dragging or chatting interrupts rest.
+
+![Crouching, eating rice, and lying down to sleep](docs/media/resting.gif)
+
+[15-second MP4](docs/media/resting.mp4). Random activity now aligns the visible character silhouette with the edge. Intentional observation visits may briefly enter the content area, then return to an edge before resuming idle activities.
 
 ### Four-limb climbing · 0.6.1
 
@@ -42,8 +50,8 @@ The packages include the model, animations, and runtime. You do not need Python,
 
 | Platform | Download | Requirements |
 | --- | --- | --- |
-| Mac | [Xiaojing-0.6.1-macOS-arm64.dmg](https://github.com/Tao-617/ai-whale-doll/releases/download/v0.6.1/Xiaojing-0.6.1-macOS-arm64.dmg) | Apple Silicon, macOS 14 or later; this package does not support Intel Macs |
-| Windows | [Xiaojing-0.6.1-Windows-x64.exe](https://github.com/Tao-617/ai-whale-doll/releases/download/v0.6.1/Xiaojing-0.6.1-Windows-x64.exe) | Windows 10/11 x64; portable preview |
+| Mac | [Xiaojing-0.6.2-macOS-arm64.dmg](https://github.com/Tao-617/ai-whale-doll/releases/download/v0.6.2/Xiaojing-0.6.2-macOS-arm64.dmg) | Apple Silicon, macOS 14 or later; this package does not support Intel Macs |
+| Windows | [Xiaojing-0.6.2-Windows-x64.exe](https://github.com/Tao-617/ai-whale-doll/releases/download/v0.6.2/Xiaojing-0.6.2-Windows-x64.exe) | Windows 10/11 x64; portable preview |
 
 ### Mac
 
@@ -67,7 +75,8 @@ The Windows package is unsigned. Transparency, click-through behavior, the tray,
 
 These features need **no AI configuration or screen recording permission**:
 
-- **「自由活动」** (Free activity): walk and climb around screen edges, with idle gestures when resting.
+- **「自由活动」** (Free activity): occasionally walk and climb around screen edges, with longer quiet rests.
+- **Resting poses**: crouch and brood, sit and eat rice, or lie down and sleep.
 - **「跑动时偶尔闲聊」** (Occasional chatter while moving): local speech bubbles during walks.
 - Drag her body to move her. Pulling upward from below turns her upside down; pulling downward moves her normally. Spinning makes her dizzy.
 - **「大小：小／中／大」** (Size: small/medium/large): resizing anchors her back to an edge.
@@ -203,7 +212,7 @@ npm test
 npm run pack
 ```
 
-Launch `Xiaojing-0.6.1-Windows-x64.exe` from `desktop/dist/windows/`. For development **on Windows**, run `npx electron .` inside `desktop/windows/`. See the [Windows development notes](desktop/windows/README.md).
+Launch `Xiaojing-0.6.2-Windows-x64.exe` from `desktop/dist/windows/`. For development **on Windows**, run `npx electron .` inside `desktop/windows/`. See the [Windows development notes](desktop/windows/README.md).
 
 ## Validation and limitations
 
