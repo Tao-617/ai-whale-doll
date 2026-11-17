@@ -182,7 +182,7 @@ python3 scripts/serve.py
 
 Open <http://127.0.0.1:8812/>. On Windows, use `py -3 scripts/serve.py` if `python3` is unavailable. Keep the terminal open; press `Ctrl+C` to stop.
 
-The test page has animation, expression, material, skeleton, pause, and frame-step controls. `http://127.0.0.1:8812/?pet=1` previews the transparent pet page. System tray controls, desktop window movement, and observation require a desktop shell below.
+The top-left “新动作预览” (New action previews) panel lets you try crouching, eating rice, sleeping, and samba. Click “停止预览 · 站起来” (Stop preview / stand up) to finish. Expression, material, and skeleton controls are also available; the top timeline supports pause, seeking, and frame stepping for the new resting poses too. `http://127.0.0.1:8812/?pet=1` previews the transparent pet page. System tray controls, desktop window movement, and observation require a desktop shell below.
 
 ### Mac: build and launch
 

@@ -4,6 +4,7 @@ import {twoBone,turnWorld} from './moves.js';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z),Q=()=>new THREE.Quaternion();
 const X=V(1,0,0),Z=V(0,0,1),UP=V(0,1,0),wp=b=>b.getWorldPosition(V());
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
+const FADE_IN=2.8;
 export const RESTS={brood:{zh:'蹲下抱头发呆',en:'Crouch and brood',face:'grumpy',duration:40},rice:{zh:'坐下吃白饭',en:'Sit and eat rice',face:'smile',duration:50},sleep:{zh:'躺下睡大觉',en:'Lie down and sleep',face:'asleep',duration:100}};
 export class Resting {
  constructor(B,mover,scene){
@@ -22,12 +23,13 @@ export class Resting {
   const scoop=new THREE.Mesh(new THREE.SphereGeometry(.012,10,6),white);scoop.scale.set(1,.55,1.4);scoop.position.y=.081;this.spoon.add(scoop);
  }
  anchor(pose,side){const a=this.mover.anchor[pose][side];return a.bone.localToWorld(a.at.clone());}
+ seek(age){this.weight=1-Math.exp(-FADE_IN*Math.max(0,age));}
  update(dt,t,state,face){
   let drive=state.restPreview??state.petRest;
   if(drive&&t-drive.start>=drive.duration){if(state.restPreview===drive)state.restPreview=null;if(state.petRest===drive)state.petRest=null;drive=null;}
   if(state.petHeld||state.petGrab){drive=null;state.restPreview=state.petRest=null;this.weight=0;}
   if(drive&&RESTS[drive.id]){if(this.kind!==drive.id||this.started!==drive.start){this.kind=drive.id;this.started=drive.start;face.set(RESTS[this.kind].face,0,t);}}
-  const target=drive?1:0;this.weight+=(target-this.weight)*(1-Math.exp(-dt*(target?2.8:5)));
+  const target=drive?1:0;this.weight+=(target-this.weight)*(1-Math.exp(-dt*(target?FADE_IN:5)));
   state.restWeight=this.weight;
   if(this.weight<.002){if(this.kind&&face.name===RESTS[this.kind]?.face)face.set('neutral',0,t);this.kind=null;this.weight=0;state.restWeight=0;return;}
   const B=this.B,w=this.weight,age=t-this.started,kind=this.kind;

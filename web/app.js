@@ -442,7 +442,7 @@ async function loadMoves() {
 }
 export function play(name, fade = 0.35, autonomous = false) {
   if (!mixer) return;
-  if (!autonomous) pet?.interrupt(8);
+  if (!autonomous) { clearRestPreview(); pet?.interrupt(8); }
   const next = name && clips[name] ? mixer.clipAction(clips[name]) : null;
   // The mixer blends a fading clip with the pose the bones had when the clip was first bound. That has to be the rest
   // pose (which every frame starts from), not whatever was on screen at this moment (gaze, breathing, a move): the
@@ -457,6 +457,8 @@ export function play(name, fade = 0.35, autonomous = false) {
   state.clip = next;
   state.track = next ? {kind: 'clip', name, label: CLIPS[name]?.label ?? name} : null;
   state.paused = false;
+  const select = document.querySelector('#clip');
+  if (select) select.value = next ? name : '';
 }
 
 // rotate a driven bone about a world axis (taken in its rest frame), on top of its rest pose
@@ -549,7 +551,7 @@ function tick(step = null, draw = true) {
     pose('Tail1', [UP, Math.sin(state.wagPhase) * wagAmp]);
     if (mover) {
       // idle habits every 6–15 s while nothing else is going on
-      if (!state.pet && !state.clip && !mover.busy && face.name === 'neutral' && t > (state.nextTic ?? 8)) {
+      if (!state.pet && !state.clip && !state.restPreview && !(state.restWeight > 0) && !mover.busy && face.name === 'neutral' && t > (state.nextTic ?? 8)) {
         mover.play(TICS[Math.floor(Math.random() * TICS.length)], t, face);
         state.nextTic = t + 6 + Math.random() * 9;
       } else if (mover.busy) state.nextTic = Math.max(state.nextTic ?? 0, t + 6);
@@ -582,7 +584,7 @@ function tick(step = null, draw = true) {
   state.frameNo = (state.frameNo ?? 0) + 1;
 }
 
-// ---- timeline: pause, scrub and single-step whatever is playing (the last clip or move started) --------------------
+// ---- timeline: pause, scrub and single-step the last clip, move or resting preview -------------------------------
 // Where it is: a clip by its own time, a move by the time since it started. Seeking re-simulates rather than jumps,
 // so hair, skirt and tail are where they would be at that moment: a clip from half a second earlier, a move from its
 // start (moves are springs and timed steps, they have no pose-at-time).
@@ -594,6 +596,10 @@ function trackNow() {
     if (!state.clip) return null;
     const dur = state.clip.getClip().duration;
     return {...tr, dur, t: ((state.clip.time % dur) + dur) % dur};
+  }
+  if (tr.kind === 'rest') {
+    tr.t = state.restPreview?.id === tr.name ? state.time - state.restPreview.start : tr.dur;
+    return {...tr, t: Math.min(tr.t, tr.dur)};
   }
   const m = mover?.move;
   if (m && m.spec === tr.spec) { tr.dur = m.loop ? 12 : m.end; tr.t = state.time - m.t0; }
@@ -611,6 +617,13 @@ export function seek(t) {
     for (let i = 0; i < Math.round(lead / SIM); i++) tick(SIM, false);
     state.clip.time = t;
     tick(1e-4, false);
+  } else if (tr.kind === 'rest') {
+    // The pose is analytic; warm the secondary springs over the last half-second, as for clips.
+    const lead = Math.min(t, 0.5), frames = Math.floor(lead / SIM);
+    state.restPreview = {id: tr.name, start: state.time - (t - lead), duration: tr.dur};
+    resting.seek(t - lead);
+    for (let i = 0; i < frames; i++) tick(SIM, false);
+    tick(Math.max(1e-6, lead - frames * SIM), false);
   } else {
     mover.stop(state.time);
     face.set('neutral', 0, state.time);
@@ -622,8 +635,8 @@ export function seek(t) {
 }
 export function pause(on = !state.paused) {
   const tr = trackNow();
-  // a move that has run out: the button plays it again from the top
-  if (tr?.kind === 'move' && tr.t >= tr.dur - 1e-3) { seek(0); on = false; }
+  // A finished move or resting preview plays again from the top.
+  if (['move', 'rest'].includes(tr?.kind) && tr.t >= tr.dur - 1e-3) { seek(0); on = false; }
   state.paused = on;
 }
 export function stepFrame(dir) {
@@ -635,7 +648,15 @@ export function stepFrame(dir) {
 }
 const tl = {box: document.querySelector('#timeline'), play: document.querySelector('#tl-play'), bar: document.querySelector('#tl-bar'),
   time: document.querySelector('#tl-time'), name: document.querySelector('#tl-name')};
+const previewButtons = [...document.querySelectorAll('[data-preview]')];
+const previewStop = document.querySelector('#preview-stop');
 function showTimeline() {
+  const preview = state.restPreview?.id ?? (state.clip?.getClip().name === 'samba' ? 'samba' : null);
+  for (const button of previewButtons) {
+    button.disabled = !state.ready;
+    button.setAttribute('aria-pressed', String(button.dataset.preview === preview));
+  }
+  if (previewStop) previewStop.disabled = !state.ready;
   if (!tl.box) return;
   const tr = trackNow();
   tl.box.classList.toggle('idle', !tr);
@@ -777,6 +798,7 @@ for (const b of document.querySelectorAll('[data-act]')) b.addEventListener('cli
 export function move(id, endFace = null) {
   const m = typeof id === 'string' ? MOVES[id] : id;
   if (mover && m) {
+    clearRestPreview();
     pet?.interrupt(8);
     mover.play(m, state.time, face, endFace); state.lastMoveAt = state.time;
     // Keep the duration even if a grab/release interrupts this move before the timeline's first render.
@@ -826,8 +848,26 @@ const pet = new URLSearchParams(location.search).get('pet')
     playClip: (name, fade) => play(name, fade, true), findMove: id => MOVES[id] ?? TICS.find(m => m.id === id),
     hitPoint: (cx, cy) => { const r = canvas.getBoundingClientRect(); ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height * 2 - 1)); ray.setFromCamera(ndc, camera); return ray.intersectObject(mesh)[0]?.point ?? null; }}) : null;
 function playRest(id){
-  if(!RESTS[id])return;window.webkit?.messageHandlers?.pet?.postMessage({type:'restPlace'});pet?.interrupt(5);mover?.stop();play(null,.3,true);
+  if(!state.ready||!RESTS[id])return;window.webkit?.messageHandlers?.pet?.postMessage({type:'restPlace'});pet?.interrupt(5);mover?.stop();play(null,.3,true);
   state.bubbleUntil=state.petAttendUntil=0;document.querySelector('#bubble').classList.remove('show');
   state.restPreview={id,start:state.time,duration:RESTS[id].duration};
+  state.track={kind:'rest',name:id,label:RESTS[id].zh,dur:RESTS[id].duration,t:0};
+  state.paused=false;
 }
-window.xj = {rest:playRest,restModes:RESTS,setLanguage, getLanguage, say, companionReply, setSplit, act, play, feel, move, emote, tick, render:paint, seek, pause, stepFrame, renderer, scene, tics: TICS, moves: () => MOVES, get mover() { return mover; }, clips: () => clips, get mixer() { return mixer; }, model: () => model, setStyle, setOutline, state, B, springs, camera, controls, clock, poke: p => poke(W(...p)), get face() { return face; }};
+function clearRestPreview(){
+  if(!state.restPreview&&state.track?.kind!=='rest')return;
+  state.restPreview=null;
+  if(state.track?.kind==='rest')state.track=null;
+  state.nextTic=state.time+8;
+}
+function stopPreview(){
+  clearRestPreview();mover?.stop();play(null);face?.set('neutral',0,state.time);
+  state.nextTic=state.time+8;
+}
+for(const button of previewButtons)button.addEventListener('click',()=>{
+  if(!state.ready)return;
+  if(button.dataset.preview==='samba'){stopPreview();play('samba');}
+  else playRest(button.dataset.preview);
+});
+previewStop?.addEventListener('click',stopPreview);
+window.xj = {rest:playRest,restModes:RESTS,stopPreview,setLanguage, getLanguage, say, companionReply, setSplit, act, play, feel, move, emote, tick, render:paint, seek, pause, stepFrame, renderer, scene, tics: TICS, moves: () => MOVES, get mover() { return mover; }, clips: () => clips, get mixer() { return mixer; }, model: () => model, setStyle, setOutline, state, B, springs, camera, controls, clock, poke: p => poke(W(...p)), get face() { return face; }};

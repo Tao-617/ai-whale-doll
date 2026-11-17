@@ -32,10 +32,19 @@
   #tl-time { font-variant-numeric: tabular-nums; min-width: 8.5em; text-align: right; opacity: .8; }
   #timeline.idle input, #timeline.idle #tl-prev, #timeline.idle #tl-next { opacity: .35; pointer-events: none; }
   #hint { position: fixed; left: 14px; top: 58px; font-size: 13px; opacity: .6; }
+  #previews { position: fixed; left: 14px; top: 88px; display: grid; gap: 7px; width: 158px;
+    padding: 12px; border-radius: 14px; background: rgba(255, 255, 255, .82); backdrop-filter: blur(8px); font-size: 13px; }
+  #previews strong { margin-bottom: 2px; }
+  #previews button { font: inherit; border: 0; border-radius: 9px; padding: 9px 8px; background: #fff; color: #1d2a52; cursor: pointer; }
+  #previews button:hover { background: #e7eeff; }
+  #previews button[aria-pressed="true"] { background: #315fbc; color: #fff; }
+  #previews button:disabled { opacity: .45; cursor: wait; }
+  #previews small { opacity: .65; line-height: 1.5; }
+  #previews #preview-stop { border: 1px solid #cad6ee; }
 #legend{display:none;position:fixed;right:14px;top:58px;gap:10px;flex-wrap:wrap;justify-content:flex-end;max-width:46vw;font:12px system-ui;color:#dfe6f5;pointer-events:none}
 #legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
 html.pet, html.pet body { background: transparent; }
-html.pet #bar, html.pet #hint, html.pet #timeline, html.pet #legend, html.pet #loading { display: none !important; }
+html.pet #bar, html.pet #hint, html.pet #timeline, html.pet #legend, html.pet #loading, html.pet #previews { display: none !important; }
 html.pet #bubble { top: 1%; font-size: 13px; padding: 8px 12px; width: max-content; max-width: calc(100vw - 20px); }
 </style>
 <script type="importmap">{"imports": {"three": "./vendor/three.module.min.js"}}</script>
@@ -45,6 +54,15 @@ html.pet #bubble { top: 1%; font-size: 13px; padding: 8px 12px; width: max-conte
 <div id="loading">小鲸正在赶来…</div>
 <div id="bubble"></div>
 <div id="hint">拖动转视角 · 点她的头、耳朵、尾巴、手试试</div>
+<section id="previews" aria-label="新动作预览">
+  <strong>新动作预览</strong>
+  <button data-preview="brood" aria-pressed="false" disabled>蹲下抱头发呆</button>
+  <button data-preview="rice" aria-pressed="false" disabled>坐下吃白饭</button>
+  <button data-preview="sleep" aria-pressed="false" disabled>躺下睡大觉</button>
+  <button data-preview="samba" aria-pressed="false" disabled>跳桑巴舞</button>
+  <button id="preview-stop" disabled>停止预览 · 站起来</button>
+  <small>顶部可暂停、拖动进度。<br>底部勾「骨骼」查看关节。</small>
+</section>
 <div id="timeline" class="idle">
   <button id="tl-play" title="暂停 / 播放（空格）">⏸</button>
   <button id="tl-prev" title="上一帧（←）">◀</button>
