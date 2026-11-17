@@ -2,6 +2,7 @@
 # source art, private reports and workspace instructions stay on this computer.
 /*
 !/.gitignore
+!/.github/
 !/README.md
 !/README.en.md
 !/THIRD_PARTY_NOTICES.md

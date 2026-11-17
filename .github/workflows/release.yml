@@ -1,0 +1,102 @@
+name: Build desktop release
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing draft release tag, matching package.json
+        required: true
+        default: v0.6.2
+permissions:
+  contents: read
+concurrency:
+  group: desktop-release-${{ inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Require a matching draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          test "$TAG" = "v$(node -p 'require("./desktop/windows/package.json").version')"
+          test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true
+      - name: Offline protocol tests
+        run: node --test desktop/windows/test/*.test.cjs
+      - name: Build Mac package
+        if: runner.os == 'macOS'
+        run: |
+          test "$(uname -m)" = arm64
+          swiftc desktop/Roaming.swift tests/roam_policy.swift -o /tmp/xj-roam
+          /tmp/xj-roam
+          swiftc desktop/ObservationPolicy.swift tests/policy.swift -o /tmp/xj-policy
+          /tmp/xj-policy
+          python3 -m unittest discover -s tests -p 'test_*.py'
+          sh desktop/build.sh
+          sh desktop/package-mac.sh
+      - name: Build Windows package
+        if: runner.os == 'Windows'
+        working-directory: desktop/windows
+        run: |
+          npm ci
+          npm run pack
+      - name: Upload package and checksum to draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then
+            file="desktop/dist/Xiaojing-${TAG#v}-macOS-arm64.dmg"
+          else
+            file="desktop/dist/windows/Xiaojing-${TAG#v}-Windows-x64.exe"
+          fi
+          node -e 'const fs=require("node:fs"),p=require("node:path"),c=require("node:crypto"),f=process.argv[1];console.log(c.createHash("sha256").update(fs.readFileSync(f)).digest("hex")+"  "+p.basename(f))' "$file" > "$file.sha256"
+          gh release upload "$TAG" "$file" "$file.sha256" --clobber
+  checksums:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Assemble verified checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          gh release download "$TAG" -p "Xiaojing-${TAG#v}-*.sha256" -D checks
+          test "$(find checks -name '*.sha256' | wc -l)" -eq 2
+          cat checks/*.sha256 > SHA256SUMS.txt
+          cp docs/install-0.6.txt INSTALL.txt
+          gh release view "$TAG" --json assets > assets.json
+          python3 - <<'PY'
+          import json
+          assets={a['name']:a for a in json.load(open('assets.json'))['assets']}
+          for line in open('SHA256SUMS.txt'):
+              digest,name=line.strip().split('  ',1)
+              assert assets[name]['digest']=='sha256:'+digest
+              assert assets[name]['state']=='uploaded'
+          PY
+          gh release upload "$TAG" INSTALL.txt SHA256SUMS.txt --clobber
