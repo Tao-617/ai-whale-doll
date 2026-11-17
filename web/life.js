@@ -14,6 +14,8 @@ export class PetLife {
     this.mode = 'rest';
     this.next = 25;
     this.nextWalk=120+Math.random()*120;
+    this.nextDance=300+Math.random()*300;
+    this.danceUntil=0;
     this.recent = [];
     this.heading = 0;
     this.travel = null;
@@ -39,6 +41,7 @@ export class PetLife {
     if (travel) {
       travel={...travel,gait:Math.abs(travel.dy)>Math.abs(travel.dx)*2 && !['observation','return'].includes(travel.kind)?'climb':travel.gait};
       if (this.travel?.id !== travel.id) {
+        this.stopDance();
         this.x.state.petRest=this.x.state.restPreview=null;
         this.mode = 'travel';
         this.tripStarted = now;
@@ -61,9 +64,14 @@ export class PetLife {
     this.travel = null;
     this.mode = 'rest';
   }
+  stopDance() {
+    if(!this.danceUntil)return;
+    this.danceUntil=0;this.x.playClip(null,.45);this.mode='rest';
+    const face=this.x.face();if(face?.name==='smile')face.set('neutral',0,this.x.state.time);
+  }
   interrupt(delay = 6, notify = true) {
     if (notify && (this.travel || this.mode === 'waiting')) this.x.post({type: 'roamStop', id:this.travel?.id ?? null});
-    this.stopTravel();
+    this.stopDance();this.stopTravel();
     this.x.state.petRest=null;this.x.state.restPreview=null;
     if (this.ownedMove && this.x.mover()?.playing === this.ownedMove) this.x.mover().stop();
     this.ownedMove = null;
@@ -96,6 +104,7 @@ export class PetLife {
     if (blocked || this.travel || this.visiting) return;
     // Returning from an observation or a drag takes priority over idle gestures and random rest timers.
     if (!this.parked && !this.visiting && now >= (this.nextRecovery ?? 0)) {
+      this.stopDance();
       state.petRest=state.restPreview=null;
       if(this.ownedMove)this.x.mover()?.stop();
       this.ownedMove=null;this.afterTrip=false;this.nextRecovery=now+2;
@@ -103,6 +112,10 @@ export class PetLife {
       this.x.post({type:'wander',running:true});return;
     }
     if(state.restPreview||state.petRest||state.restWeight>.02)return;
+    if(this.danceUntil){
+      if(now>=this.danceUntil){this.stopDance();this.next=now+45+Math.random()*30;}
+      return;
+    }
     if (this.mode === 'waiting') {
       // A rejected request (no space, display changed) must not strand the pet in a walking animation.
       if (now > this.next) { this.stopTravel(); this.next = now + 3; }
@@ -121,6 +134,11 @@ export class PetLife {
       return;
     }
     this.afterTrip = false;
+    // A rare eight-second dance, on the floor only. A long cooldown keeps rest the default.
+    if(this.floor&&now>=this.nextDance&&Math.random()<.18){
+      this.nextDance=now+480+Math.random()*420;this.danceUntil=now+8;this.mode='dance';
+      this.x.post({type:'restPlace'});this.x.face()?.set('smile',0,now);this.x.playClip('samba',.45);return;
+    }
     if(this.floor&&Math.random()<.8){
       const keys=Object.keys(RESTS).filter(k=>k!==this.lastRest),id=keys[Math.floor(Math.random()*keys.length)];this.lastRest=id;
       this.x.post({type:"restPlace"});state.petRest={id,start:now,duration:RESTS[id].duration};this.next=now+RESTS[id].duration+30+Math.random()*40;return;

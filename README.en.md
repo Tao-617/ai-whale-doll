@@ -25,6 +25,8 @@ These clips were recorded from the project's test page using the real model and 
 
 Walks are usually 2–4 minutes apart, sometimes longer while resting. At the bottom edge she can crouch and brood, sit and eat rice, or lie on her side and sleep. Choose a pose anytime under **Resting poses**. The bowl, rice, and spoon are procedural meshes; no extra model download is needed. Dragging or chatting interrupts rest.
 
+Occasionally she performs an eight-second samba at the bottom edge, then rests again. Dances are at least eight minutes apart and never start during climbing or observation visits.
+
 ![Crouching, eating rice, and lying down to sleep](docs/media/resting.gif)
 
 [15-second MP4](docs/media/resting.mp4). Random activity now aligns the visible character silhouette with the edge. Intentional observation visits may briefly enter the content area, then return to an edge before resuming idle activities.

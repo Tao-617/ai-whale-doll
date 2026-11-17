@@ -17,6 +17,24 @@ for(const width of [260,360,520]){await p.setViewportSize({width,height:Math.rou
   await p.evaluate(()=>{xjPet.interrupt(0);step(90);});assert(await p.evaluate(()=>xj.state.restWeight===0));
  }
 }
+const dance=await p.evaluate(()=>{
+ const l=xj.state.petLife;
+ const attempt=(host={})=>{
+  xjPet.interrupt(0);xj.mover.stop();xj.state.bubbleUntil=xj.state.petAttendUntil=0;
+  xjPet.host({active:true,parked:true,floor:true,...host});l.next=xj.state.time;l.nextWalk=Infinity;l.nextDance=0;
+  const random=Math.random;Math.random=()=>0;step(1);Math.random=random;
+ };
+ attempt({floor:false});const noAirDance=!l.danceUntil;
+ attempt({visiting:true});const noVisitDance=!l.danceUntil;
+ attempt({active:false});const disabled=!l.danceUntil;
+ attempt();const started=!!l.danceUntil&&xj.state.clip?.getClip().name==='samba',cooldown=l.nextDance-xj.state.time;
+ step(90);const finite=Object.values(xj.mover.B).every(b=>b.quaternion.toArray().every(Number.isFinite));
+ step(165);const ended=!l.danceUntil&&!xj.state.clip&&l.next>xj.state.time;
+ xjPet.interrupt(0);xj.mover.stop();l.next=xj.state.time;const random=Math.random;Math.random=()=>0;step(1);Math.random=random;const cooledDown=!l.danceUntil;
+ attempt();xj.companionReply({speak:true,text:'Hello!',emotion:'happy',motion:''});step(1);const speechStops=!l.danceUntil&&!xj.state.clip;
+ attempt();xjPet.host({active:false});step(1);const toggleStops=!l.danceUntil&&!xj.state.clip;
+ return{noAirDance,noVisitDance,disabled,started,cooldown,finite,ended,cooledDown,speechStops,toggleStops};
+});for(const [key,value] of Object.entries(dance))assert(key==='cooldown'?value>=479.9:value,key);
 const schedule=await p.evaluate(async()=>{
  const {PetLife}=await import('./life.js');let seed=617,random=Math.random;Math.random=()=>((seed=(seed*1664525+1013904223)>>>0)/4294967296);
  const state={time:0},trips=[],rests=new Set();let trip=null;
@@ -26,5 +44,5 @@ const schedule=await p.evaluate(async()=>{
   life.host({active:true,parked:true,floor:true,travel:trip});life.update(.5,state.time);}
  Math.random=random;return{trips,rests:[...rests]};
 });assert(schedule.trips.length>=1&&schedule.trips.length<=4);assert(schedule.trips[0]>=90);assert(schedule.rests.length>=2);for(let i=1;i<schedule.trips.length;i++)assert(schedule.trips[i]-schedule.trips[i-1]>=120);
-assert.deepEqual(errors,[]);await writeFile(out+'verified.json',JSON.stringify({poses,schedule,errors},null,2));console.log(JSON.stringify({poses,schedule,errors}));
+assert.deepEqual(errors,[]);await writeFile(out+'verified.json',JSON.stringify({poses,dance,schedule,errors},null,2));console.log(JSON.stringify({poses,dance,schedule,errors}));
 }finally{await b.close()}
