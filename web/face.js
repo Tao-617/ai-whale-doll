@@ -401,7 +401,7 @@ export const SPECIALS = {
   starstruck: {shape: 3, face: {open: 1.1, raise: 0.5, mOpen: 0.7, mSmile: 0.9, fang: 1, blush: 0.8, tailWag: 1, earLift: 0.7}, hold: 2.8, after: 'happy'},
   lovestruck: {shape: 4, face: {open: 1, raise: 0.3, mCat: 0.7, mSmile: 0.7, blush: 1.3, blushLines: 1, tailWag: 0.8}, hold: 2.8, after: 'bliss'},
   crying: {shape: 0, face: {shine: 1, lidSlant: -0.6, tilt: 1, raise: 0.3, mWave: 1, mOpen: 0.6, blush: 1.1, headPitch: 12 * DEG, earLift: -0.8, ahogeDroop: 0.8}, hold: 3.5, after: 'teary'},
-  asleep: {shape: 0, face: {open: 0, eyeSmile: -0.8, raise: -0.2, mOpen: 0.08, mRound: 0.5, ahogeDroop: 0.9, earLift: -0.6, headPitch: 16 * DEG}, hold: 0, after: null},
+  asleep: {shape: 0, face: {open: 0, eyeSmile: -0.9, raise: -0.12, mOpen: 0.2, mRound: 0.7, blush:.6, ahogeDroop: 0.9, earLift: -0.6, headRoll:-3*DEG}, hold: 0, after: null},
 };
 
 export class Face {
@@ -502,6 +502,7 @@ export class Face {
     let mOpen = v('mOpen');
     // speech: one open / close per syllable on top of the expression's mouth; wider when shouting
     if (t < this.talkUntil) mOpen = Math.max(mOpen, (0.15 + 0.45 * Math.abs(Math.sin(t * 13) * Math.sin(t * 5.3))) * (1 + 0.4 * v('mShout')));
+    mOpen=THREE.MathUtils.lerp(mOpen,.19-.035*Math.cos((this.sleepAge??t)*Math.PI*2/4.8),this.sleepWeight??0);
     const gz = this.gaze.clone().add(this.gazeBias);
     for (const e of [this.parts.eyeL, this.parts.eyeR]) {
       const u = e.material.userData.uniforms;

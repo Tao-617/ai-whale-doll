@@ -172,7 +172,7 @@ final class App: NSObject, NSApplicationDelegate, WKScriptMessageHandler, NSMenu
         approach.target = self; approach.state = companion.approachEnabled ? .on : .off
         menu.addItem(.separator())
         let rests=NSMenu(title:L("休息动作"))
-        for (id,key) in [("brood","蹲下托腮发呆"),("rice","坐下吃白饭"),("sleep","躺下睡大觉")] {
+        for (id,key) in [("brood","蹲下托腮发呆"),("rice","坐下吃白饭"),("sleep","四仰八叉睡大觉")] {
             let item=rests.addItem(withTitle:L(key),action:#selector(restAction(_:)),keyEquivalent:"");item.target=self;item.representedObject=id
         }
         let restItem=menu.addItem(withTitle:L("休息动作"),action:nil,keyEquivalent:"");restItem.submenu=rests

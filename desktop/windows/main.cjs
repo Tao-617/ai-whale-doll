@@ -57,7 +57,7 @@ function rebuild(){if(!tray)return;const source=lastSource,canAllow=source&&sour
   {label:T('自由活动（沿四周边缘）'),type:'checkbox',checked:store.lively!==false,click:()=>{store.lively=store.lively===false;stop();save();host();rebuild();}},
   {label:T('散步、发呆时偶尔闲聊'),type:'checkbox',checked:store.chatter!==false,click:()=>{store.chatter=store.chatter===false;save();host();rebuild();}},
   {label:T('截图后主动靠近内容（说完回边缘）'),type:'checkbox',checked:store.approach===true,click:()=>{store.approach=!store.approach;if(visit)stop();save();rebuild();}},
-  {label:T('休息动作'),submenu:[['brood','蹲下托腮发呆'],['rice','坐下吃白饭'],['sleep','躺下睡大觉']].map(([id,key])=>({label:T(key),click:()=>prepareRest(id)}))},
+  {label:T('休息动作'),submenu:[['brood','蹲下托腮发呆'],['rice','坐下吃白饭'],['sleep','四仰八叉睡大觉']].map(([id,key])=>({label:T(key),click:()=>prepareRest(id)}))},
   ...sizes.map((s,i)=>({label:T('大小：')+[T('小'),T('中'),T('大')][i],type:'radio',checked:store.size===i,click:()=>setSize(i)})),
   {type:'separator'},{label:T('回到右下角'),click:home},{label:T('退出'),click:()=>app.quit()}];
  const menu=Menu.buildFromTemplate(items);menu.on('menu-will-show',()=>{menuOpen=true;stop();host();});menu.on('menu-will-close',()=>{menuOpen=false;host();});

@@ -545,6 +545,7 @@ function tick(step = null, draw = true) {
     const lx = THREE.MathUtils.clamp(state.look.x + state.eyes.x, -1, 1), ly = THREE.MathUtils.clamp(state.look.y + state.eyes.y, -1, 1);
     let yaw = THREE.MathUtils.clamp(state.look.x + 0.35 * state.eyes.x, -1, 1) * 0.55, pitch = -THREE.MathUtils.clamp(state.look.y + 0.35 * state.eyes.y, -1, 1) * 0.28;
     // the expression's head pose (face.js head channels) on top of gaze and nods
+    yaw *= 1-(state.sleepWeight??0);pitch *= 1-(state.sleepWeight??0);
     yaw += face.value('headYaw'); pitch += face.value('headPitch');
     const roll = face.value('headRoll');
     pose('Neck', [UP, yaw * 0.3], [RIGHT, pitch * 0.3], [FWD, roll * 0.3]);
@@ -599,6 +600,7 @@ function tick(step = null, draw = true) {
     if(pusher)pusher.ground=ground;
     pusher?.update();
     resting?.props(state);
+    if(state.restCamera&&!state.restPreview&&!(state.restWeight>.002))restoreRestCamera();
   }
   if (!draw) return;
   controls.update();
@@ -896,14 +898,25 @@ function playRest(id){
   if(!state.ready||!RESTS[id])return;window.webkit?.messageHandlers?.pet?.postMessage({type:'restPlace'});pet?.interrupt(5);mover?.stop();play(null,.3,true);
   state.bubbleUntil=state.petAttendUntil=0;document.querySelector('#bubble').classList.remove('show');
   state.restPreview={id,start:state.time,duration:RESTS[id].duration};
+  if(!state.pet){
+    restoreRestCamera();
+    if(id==='sleep'){
+      state.restCamera={position:camera.position.clone(),target:controls.target.clone()};
+      controls.target.set(0,.22,0);camera.position.set(0,2.25,1.75);controls.update();
+    }
+  }
   state.track={kind:'rest',name:id,label:RESTS[id].zh,dur:RESTS[id].duration,t:0};
   state.paused=false;
 }
 function clearRestPreview(){
+  restoreRestCamera();
   if(!state.restPreview&&state.track?.kind!=='rest')return;
   state.restPreview=null;
   if(state.track?.kind==='rest')state.track=null;
   state.nextTic=state.time+8;
+}
+function restoreRestCamera(){
+  if(!state.restCamera)return;camera.position.copy(state.restCamera.position);controls.target.copy(state.restCamera.target);state.restCamera=null;controls.update();
 }
 function stopPreview(){
   clearRestPreview();mover?.stop();play(null);face?.set('neutral',0,state.time);

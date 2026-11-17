@@ -220,7 +220,10 @@ export function setupPet(x) {
     const cw = h.com.clone().applyQuaternion(m.quaternion).add(m.position), f = 1 - Math.exp(-dt * 10);
     const nx = h.c.x + (cw.x - h.com.x - h.c.x) * f, ny = h.c.y + (cw.y - h.com.y - h.c.y) * f, dx = (nx - h.c.x) / k, dy = (ny - h.c.y) / k;
     h.c.set(nx, ny);
-    camera.position.set(base.x + nx, base.y + ny, base.z); x.controls.target.set(baseT.x + nx, baseT.y + ny, baseT.z);
+    const sleeping=state.sleepWeight??0,angle=.87*sleeping,distance=3+.4*sleeping;
+    x.controls.target.set(baseT.x+nx,baseT.y+ny+.03*sleeping,baseT.z-.12*sleeping);
+    camera.position.copy(x.controls.target).add(new THREE.Vector3(0,Math.sin(angle)*distance,Math.cos(angle)*distance));
+    camera.lookAt(x.controls.target);
     if (Math.abs(dx) + Math.abs(dy) > 1e-3) {
       // the running total, not the step: the window sits on whole pixels, and steps of a fraction of one were lost
       // one after another (she slid away from the pointer the longer she was carried)
