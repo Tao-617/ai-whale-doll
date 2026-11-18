@@ -13,7 +13,7 @@ import {Mover, Picker, TICS} from './moves.js';
 import {Climber} from './climb.js';
 import {Resting, RESTS} from './rest.js';
 import {Hands} from './hands.js';
-import {Dancer, drivers} from './dance.js';
+import {Dancer, drivers, HOLDS, parseCommand} from './dance.js';
 import {t, getLanguage, setLanguage} from './i18n.js';
 
 const canvas = document.querySelector('#stage');
@@ -467,7 +467,13 @@ let dancer = null;
 async function loadDance() {
   if (!clips.samba) return;
   const lib = await (await fetch('assets/samba_atoms.json')).json();
-  dancer = new Dancer({mixer, clip: clips.samba, lib, model, hips: B.mixamorigHips, hipsRest: restLocal.get(B.mixamorigHips).q, rest: new Map([...restLocal].map(([b, r]) => [b, r.q]))});
+  dancer = new Dancer({mixer, clip: clips.samba, lib, model, hips: B.mixamorigHips, hipsRest: restLocal.get(B.mixamorigHips).q, rest: new Map([...restLocal].map(([b, r]) => [b, r.q])),
+    onHold: h => face.set(h?.face ?? 'neutral', 0, state.time, 1.4),
+    // hold poses solved standing at rest (the bones are put back to rest first; the next frame starts there anyway)
+    solveArms: arms => { for (const [b, r] of restLocal) { b.quaternion.copy(r.q); b.position.copy(r.p); } model.updateMatrixWorld(true); return mover.solvePose(arms); }});
+  clips.sambaFront = dancer.front(clips.samba);   // the original facing front (compare.html's left side)
+  // round again from where the dancer goes round again (dance.js `back`), so the two sides stay together
+  clips.sambaFront.userData.loopFrom = lib.blocks[dancer.back][0] - lib.blocks[0][0];
   const solo = document.querySelector('#dance-solo');
   for (const a of lib.atoms) solo?.append(new Option(`${a.id} · ${lib.channels[a.channel].cn} · ${a.label} ×${a.members.length}`, a.id));
 }
@@ -482,6 +488,20 @@ export function dance(mode, arg) {
   const feed = mode === 'score' ? drivers.score(dancer.lib) : mode === 'improvise' ? drivers.improvise() : mode === 'solo' ? drivers.solo(arg) : null;
   dancer.start(state.time + (busy ? 0.8 : 0), feed);
   state.track = null;
+}
+// what you type to her while she dances (dance.js parseCommand); starts the dance first when she is not dancing
+export function tell(text) {
+  if (!dancer || !state.ready) return '还没准备好';
+  const r = parseCommand(text);
+  if (r.action === 'stop') dance('stop');
+  else if (r.action === 'start') { if (dancer.on) return '在跳呢～'; dance('score'); }
+  // what you just said replaces anything said before that has not started yet (they queued one block each)
+  else if (r.action === 'hold') {
+    // by the beat: on the next beat, for as many beats as said
+    if (!dancer.on) { dance('score'); tick(1e-4, false); }
+    dancer.holdBeats(r.hold, r.beats, state.time);
+  }
+  return r.reply;
 }
 export function play(name, fade = 0.35, autonomous = false) {
   if (!mixer) return;
@@ -547,7 +567,11 @@ function tick(step = null, draw = true) {
     for (const [b, r] of restLocal) { b.quaternion.copy(r.q); b.position.copy(r.p); }
     // state.hold: freeze the playing clip at a time (inspection, screenshots)
     if (state.clip && state.hold != null) state.clip.time = state.hold;
-    dancer?.update(t);
+    // the dancer schedules on the time before this step: the mixer then moves its new actions on by dt
+    // a clip that goes round again from partway (userData.loopFrom): moved back before this step would wrap it
+    const lf = state.clip?.getClip().userData?.loopFrom, cd = state.clip?.getClip().duration;
+    if (lf != null && state.hold == null && state.clip.time + dt * state.clip.getEffectiveTimeScale() >= cd) state.clip.time -= cd - lf;
+    dancer?.update(t - dt);
     mixer?.update(dt);
     // The mixer writes a bone only when its value differs from the frame before (PropertyMixer.apply). Every frame here
     // starts by putting the bones back to rest, so a bone a clip holds still for two frames was left at rest: a held
@@ -555,8 +579,11 @@ function tick(step = null, draw = true) {
     // spine 18°, a whole lying body back on its feet). So what the mixer computed is written every frame.
     if (mixer) for (let i = 0; i < mixer._nActiveBindings; i++) {
       const pm = mixer._bindings[i];
-      pm.binding.setValue(pm.buffer, ((mixer._accuIndex ^ 1) + 1) * pm.valueSize);
+      // update() flips _accuIndex first and apply(n) leaves this frame's result at (n + 1) · size; (n ^ 1) was the frame
+      // before, which put every clip a frame late and showed the outgoing pose for one frame after a cut
+      pm.binding.setValue(pm.buffer, (mixer._accuIndex + 1) * pm.valueSize);
     }
+    dancer?.after(t);
     // idle: breathing, a slow sway, glances, gaze follows the pointer
     const breathe = Math.sin(t * 2 * Math.PI / 3.4);
     if (Math.random() < dt * 0.25) state.glance = {x: (Math.random() - 0.5) * 0.8, y: (Math.random() - 0.5) * 0.3, until: t + 1.2};
@@ -954,6 +981,14 @@ previewStop?.addEventListener('click',stopPreview);
 {
   const panel = document.querySelector('#dance'), log = document.querySelector('#dance-log'), cmd = document.querySelector('#dance-cmd');
   for (const b of panel?.querySelectorAll('[data-dance]') ?? []) b.addEventListener('click', () => dance(b.dataset.dance));
+  for (const b of panel?.querySelectorAll('[data-hold]') ?? []) b.addEventListener('click', () => {
+    if (!dancer.on) dance('push');
+    dancer.push({hold: b.dataset.hold, blocks: 2});
+  });
+  document.querySelector('#dance-say')?.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    log.textContent = tell(e.target.value); e.target.value = '';
+  });
   document.querySelector('#dance-solo')?.addEventListener('change', e => { if (e.target.value) dance('solo', e.target.value); });
   document.querySelector('#dance-push')?.addEventListener('click', () => {
     let b;
@@ -967,7 +1002,7 @@ previewStop?.addEventListener('click',stopPreview);
     for (const el of panel.querySelectorAll('button, select')) el.disabled = !state.ready || !dancer;
     if (!dancer) return;
     const head = dancer.on ? `第 ${dancer.count} 块 · ${dancer.bpm} bpm · 队列 ${dancer.queue.length}` : '未在跳';
-    log.textContent = [head, ...dancer.log.map(r => `#${String(r.n).padStart(3)} ${dancer.channels.map(c => (r[c] ?? '').padEnd(8)).join('')}${r.size < 1 ? ` ×${r.size}` : ''}`)].join('\n');
+    log.textContent = [head, ...dancer.log.map(r => `#${String(r.n).padStart(3)} 原舞${String(r.k).padStart(2)} ${dancer.channels.map(c => (r[c] ?? '').padEnd(7)).join('')}${r.hold ? ` ✋${HOLDS[r.hold].cn}` : ''}${r.size < 1 ? ` ×${r.size}` : ''}`)].join('\n');
   }, 200);
 }
-window.xj = {dance, get dancer() { return dancer; }, rest:playRest,restModes:RESTS,stopPreview,setLanguage, getLanguage, say, companionReply, setSplit, act, play, feel, move, emote, tick, render:paint, seek, pause, stepFrame, renderer, scene, tics: TICS, moves: () => MOVES, get mover() { return mover; }, clips: () => clips, get mixer() { return mixer; }, model: () => model, setStyle, setOutline, state, B, springs, camera, controls, clock, poke: p => poke(W(...p)), get face() { return face; }};
+window.xj = {dance, tell, get dancer() { return dancer; }, rest:playRest,restModes:RESTS,stopPreview,setLanguage, getLanguage, say, companionReply, setSplit, act, play, feel, move, emote, tick, render:paint, seek, pause, stepFrame, renderer, scene, tics: TICS, moves: () => MOVES, get mover() { return mover; }, clips: () => clips, get mixer() { return mixer; }, model: () => model, setStyle, setOutline, state, B, springs, camera, controls, clock, poke: p => poke(W(...p)), get face() { return face; }};

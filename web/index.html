@@ -78,15 +78,20 @@ html.pet #bubble { top: 1%; font-size: 13px; padding: 8px 12px; width: max-conte
 <section id="dance" aria-label="流式舞蹈 demo">
   <strong>流式舞蹈 demo · 桑巴原子</strong>
   <div class="row">
-    <button data-dance="score" disabled>原舞（原子重建）</button>
-    <button data-dance="improvise" disabled>即兴编排</button>
+    <button data-dance="score" disabled>原舞（只听你的）</button>
+    <button data-dance="improvise" disabled>原舞 + 随机改动</button>
     <button data-dance="stop" disabled>停</button>
   </div>
+  <div class="row"><span style="align-self:center">下一块：</span>
+    <button data-hold="up" disabled>举双手</button><button data-hold="open" disabled>张臂</button>
+    <button data-hold="hips" disabled>叉腰</button><button data-hold="chest" disabled>握拳</button>
+  </div>
   <select id="dance-solo" disabled><option value="">单看一个原子…</option></select>
-  <textarea id="dance-cmd" spellcheck="false">{"legs":"legs3","arms":"arms5","torso":"torso3","size":0.8}</textarea>
-  <div class="row"><button id="dance-push" disabled>推入队列（一块 = 2 拍）</button></div>
+  <input id="dance-say" placeholder="说：举手 3 拍 / 叉腰 / 放下 / 停" style="font:inherit;border:1px solid #cad6ee;border-radius:8px;padding:6px">
+  <textarea id="dance-cmd" spellcheck="false">{"arms":"arms5"}</textarea>
+  <div class="row"><button id="dance-push" disabled>改下一块（一块 = 2 拍）</button></div>
   <pre id="dance-log"></pre>
-  <small>腿 / 躯干 / 手臂各自按块（2 拍）接续；没写的部位继续当前律动，写 null 回到静止。* = 自动补的律动。</small>
+  <small>身体按原舞顺序一直跳；改动只换下一块里写到的部位（如 {"arms":"arms5"}），没写的部位照原舞，写 null 回到静止。原 = 原舞本块。</small>
 </section>
 <div id="timeline" class="idle">
   <button id="tl-play" title="暂停 / 播放（空格）">⏸</button>

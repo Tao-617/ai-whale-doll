@@ -218,6 +218,29 @@ export class Mover {
     sp.x -= k; sp.target = 0;
   }
   armNow(side) { return this.arm[side].pose ?? 'down'; }
+  // The arms solved, standing at rest, in a pose per side ({L, R}: ARM names; a side left out stays at rest), with all
+  // the usual rules (reach, out of her head, chest and dress, elbow side). Returns each arm bone's local rotation, and
+  // leaves the bones and the arms' state as they were. For callers that want the pose as a still to play (dance holds).
+  solvePose(arms) {
+    const names = ['Shoulder', 'Arm', 'ForeArm', 'Hand'].flatMap(n => ['Left' + n, 'Right' + n]);
+    const keep = names.map(n => this.B[n].quaternion.clone()), saved = JSON.stringify(Object.keys(this.arm));
+    const state = {L: {...this.arm.L}, R: {...this.arm.R}};
+    for (const side of ['L', 'R']) {
+      this.arm[side] = {w: new Spring(0, 0.22, 0.8), pos: new Spring3(0.24, 0.72), pose: arms[side] ?? null, swivel: 0, gswivel: 0};
+      this.arm[side].lastPose = null;
+    }
+    for (let i = 0; i < 40; i++) {
+      for (const side of ['L', 'R']) { const a = this.arm[side]; a.w.x = i === 0 ? 0 : a.pose ? 1 : 0; }
+      for (const n of names) this.B[n].quaternion.copy(keep[names.indexOf(n)]);
+      this.B.Hips.updateMatrixWorld(true);
+      this.arms(1 / 30, i / 30);
+    }
+    const out = Object.fromEntries(names.map(n => [n, this.B[n].quaternion.clone()]));
+    names.forEach((n, i) => this.B[n].quaternion.copy(keep[i]));
+    this.B.Hips.updateMatrixWorld(true);
+    this.arm = state; void saved;
+    return out;
+  }
 
   // one step, merged over the previous ones
   apply(s, now) {
@@ -524,7 +547,32 @@ export class Mover {
         aimAt(mid, fl, P.sub(wp(mid)), w);
       }
     };
+    // The guard's correction (what it turned the upper arm and forearm by) changes at no more than 360°/s. Its fist
+    // target and elbow swing are picked anew each frame, and when a fast swing (samba arms) runs into her they can
+    // change by 25–30° from one frame to the next: a forearm jumped 52° in 1/30 s.
+    const before = {};
+    for (const side of Object.keys(gGoals)) {
+      const S = side === 'L' ? 'Left' : 'Right';
+      before[side] = [B[S + 'Arm'].quaternion.clone(), B[S + 'ForeArm'].quaternion.clone()];
+    }
     pass(gGoals, guarded);
+    for (const side of ['L', 'R']) {
+      const a = this.arm[side], S = side === 'L' ? 'Left' : 'Right';
+      if (!before[side]) { a.gcorr = null; continue; }
+      const fresh = !a.gcorr || a.gcorrAt < t - 0.1;
+      a.gcorr = [B[S + 'Arm'], B[S + 'ForeArm']].map((bone, i) => {
+        const want = before[side][i].clone().invert().multiply(bone.quaternion);   // local correction
+        let c = want;
+        if (!fresh) {
+          const prev = a.gcorr[i], ang = prev.angleTo(want), max = 360 * DEG * dt;
+          c = ang > max ? prev.clone().slerp(want, max / ang) : want;
+        }
+        bone.quaternion.copy(before[side][i]).multiply(c);
+        return c;
+      });
+      a.gcorrAt = t;
+      for (const n of ['Arm', 'ForeArm']) B[S + n].updateMatrixWorld(true);
+    }
     for (const side of Object.keys(goals)) { const S = side === 'L' ? 'Left' : 'Right'; for (const n of ['Shoulder', 'Arm', 'ForeArm']) B[S + n].updateMatrixWorld(true); }
     // The collar bone: her arm from the sleeve cap is short, so like anyone's her shoulder comes up and forward for what
     // the arm alone cannot reach (a cheek, a wave overhead). The collar turns toward the goal by as much as the goal lies

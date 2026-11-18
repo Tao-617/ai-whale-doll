@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>桑巴对比 · 原版 vs 即时编舞</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #dfe7f7; font: 14px system-ui, sans-serif; color: #1d2a52; }
+  header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; flex-wrap: wrap; }
+  header strong { font-size: 15px; margin-right: 6px; }
+  button, select { font: inherit; border: 0; border-radius: 9px; padding: 7px 12px; background: #fff; color: inherit; cursor: pointer; }
+  button:hover { background: #e7eeff; }
+  button:disabled, select:disabled { opacity: .45; cursor: wait; }
+  label { display: flex; align-items: center; gap: 5px; }
+  #status { margin-left: auto; opacity: .7; font-size: 13px; }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 10px 10px; height: calc(100% - 110px); box-sizing: border-box; }
+  .pane { position: relative; border-radius: 14px; overflow: hidden; background: #c9d5ee; }
+  .pane iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .tag { position: absolute; left: 12px; top: 10px; padding: 5px 10px; border-radius: 9px; background: rgba(255,255,255,.85); font-weight: 600; pointer-events: none; }
+  .log { position: absolute; right: 10px; top: 10px; margin: 0; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.82);
+    font: 11.5px/1.45 ui-monospace, monospace; white-space: pre; pointer-events: none; }
+  .log:empty { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <strong>桑巴对比</strong>
+  <button id="go" disabled>同时开始</button>
+  <button id="stop" disabled>停</button>
+  <label>右边：
+    <select id="mode" disabled>
+      <option value="score">原舞 · 只听你的</option>
+      <option value="improvise">原舞 + 随机改动</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="sync" checked> 视角同步（拖左边）</label>
+  <label><input type="checkbox" id="skel"> 骨骼</label>
+  <span id="status">加载中…</span>
+  <form id="say" style="flex-basis:100%;display:flex;gap:8px;align-items:center;margin:0">
+    <input id="sayText" placeholder="对右边的她说：举手 3 拍 / 叉腰 / 一直张开手 / 放下 / 停 / 跳" style="flex:1;font:inherit;border:0;border-radius:9px;padding:8px 12px" autocomplete="off">
+    <button>说</button><span id="sayReply" style="opacity:.75"></span>
+  </form>
+</header>
+<main>
+  <div class="pane"><iframe id="a" src="index.html"></iframe><span class="tag">原版 · Mixamo 桑巴动捕（不转圈）</span><pre class="log" id="loga"></pre></div>
+  <div class="pane"><iframe id="b" src="index.html"></iframe><span class="tag" id="tagb">原舞 · 只听你的</span><pre class="log" id="logb"></pre></div>
+</main>
+<script type="module">
+const A = document.querySelector('#a'), Bf = document.querySelector('#b');
+const go = document.querySelector('#go'), stop = document.querySelector('#stop'), mode = document.querySelector('#mode');
+const sync = document.querySelector('#sync'), skel = document.querySelector('#skel'), status = document.querySelector('#status');
+const tagb = document.querySelector('#tagb'), loga = document.querySelector('#loga'), logb = document.querySelector('#logb');
+const xa = () => A.contentWindow.xj, xb = () => Bf.contentWindow.xj;
+const HIDE = '#bar,#hint,#timeline,#legend,#previews,#dance{display:none!important}';
+for (const f of [A, Bf]) f.addEventListener('load', () => {
+  const s = f.contentDocument.createElement('style'); s.textContent = HIDE; f.contentDocument.head.append(s);
+});
+let started = 0;
+const ready = () => xa()?.state.ready && xb()?.state.ready && xb()?.dancer;
+const wait = setInterval(() => {
+  if (!ready()) return;
+  clearInterval(wait);
+  for (const el of [go, stop, mode]) el.disabled = false;
+  status.textContent = '就绪';
+}, 200);
+function start() {
+  if (!ready()) return;
+  xa().stopPreview?.(); xb().stopPreview?.();
+  // the original from the first block (0.73 s in), facing front like her: the turning is taken off the same way, so
+  // the two sides line up pose for pose
+  xa().play('sambaFront', 0.3);
+  xb().dance(mode.value);
+  started = performance.now();
+}
+go.addEventListener('click', start);
+document.querySelector('#say').addEventListener('submit', e => {
+  e.preventDefault();
+  const box = document.querySelector('#sayText'), text = box.value;
+  if (!ready() || !text.trim()) return;
+  // starting her from the box starts the left side too, so the two stay comparable
+  const was = xb().dancer.on;
+  document.querySelector('#sayReply').textContent = xb().tell(text);
+  if (!was && xb().dancer.on) { xa().play('sambaFront', 0.3); started = performance.now(); }
+  if (!xb().dancer.on) { xa().play(null, 0.3); started = 0; }
+  box.value = '';
+});
+mode.addEventListener('change', () => { tagb.textContent = mode.value === 'score' ? '原舞 · 只听你的' : '原舞 + 随机改动'; if (started) start(); });
+stop.addEventListener('click', () => { xa()?.play(null, 0.3); xb()?.dance('stop'); started = 0; });
+skel.addEventListener('change', () => { for (const x of [xa(), xb()]) x?.setSplit(skel.checked); });
+// copy the left camera onto the right one
+function frame() {
+  const a = xa(), b = xb();
+  if (sync.checked && a?.camera && b?.camera) {
+    b.camera.position.copy(a.camera.position); b.camera.quaternion.copy(a.camera.quaternion);
+    b.controls.target.copy(a.controls.target); b.camera.zoom = a.camera.zoom; b.camera.updateProjectionMatrix();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+setInterval(() => {
+  if (!ready()) return;
+  const a = xa().state.clip, d = xb().dancer;
+  loga.textContent = started && a ? `原片 ${a.time.toFixed(1)} / ${a.getClip().duration.toFixed(1)} s` : '';
+  if (!d.on) { logb.textContent = ''; return; }
+  logb.textContent = [`第 ${d.count} 块 · ${d.bpm} bpm`, ...d.log.slice(0, 6).map(r => `#${String(r.n).padStart(3)} 原舞${String(r.k).padStart(2)} ${d.channels.map(c => (r[c] ?? '—').padEnd(7)).join('')}${r.hold ? ` ✋定格` : ''}${r.size < 1 ? ` ×${r.size}` : ''}`)].join('\n');
+  if (started) status.textContent = `已播 ${((performance.now() - started) / 1000).toFixed(0)} s`;
+}, 200);
+</script>
+</body>
+</html>
